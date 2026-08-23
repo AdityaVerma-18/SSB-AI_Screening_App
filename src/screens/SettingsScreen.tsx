@@ -6,349 +6,367 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
-  Image,
   Alert,
-  Platform,
+  Image,
+  ImageStyle,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors, typography, rounded, spacing } from '../theme/theme';
+import { getTheme, typography, rounded, spacing } from '../theme/theme';
 import { OfficerProfile } from '../types';
 
 interface SettingsScreenProps {
   officer: OfficerProfile;
   onLogout: () => void;
+  isDark?: boolean;
+  onToggleDarkMode?: (val: boolean) => void;
 }
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   officer,
   onLogout,
+  isDark = false,
+  onToggleDarkMode,
 }) => {
-  const [biometricUnlock, setBiometricUnlock] = useState(true);
-  const [twoFactorAuth, setTwoFactorAuth] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
+  const theme = getTheme(isDark);
+  const [biometricUnlock, setBiometricUnlock] = useState<boolean>(true);
+  const [twoFactorAuth, setTwoFactorAuth] = useState<boolean>(true);
+  const [notifications, setNotifications] = useState<boolean>(true);
+
+  const handleToggleTheme = (value: boolean) => {
+    if (onToggleDarkMode) {
+      onToggleDarkMode(value);
+    }
+  };
+
+  const handleAuditLogExport = () => {
+    Alert.alert(
+      'Export Audit Logs',
+      'Officer session audit report (ID: OFF-1042) exported to PDF.'
+    );
+  };
+
+  const handleSupport = () => {
+    Alert.alert(
+      'SSB IT Helpdesk',
+      'Toll Free: 1800-11-2324\nEmail: ssb-support@mha.gov.in\nDirect Terminal Comms: ACTIVE'
+    );
+  };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Profile Section */}
-      <View style={styles.profileSection}>
-        <View style={styles.avatarWrapper}>
-          <Image
-            source={{
-              uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBs9-DUrXX16NQ9c-hLubc_O8fWKWSVA-iS3zbXO1mMdegov_5O7q4FcLiGFg7RD5QR-uQbpUsXzEB35EU543Hvf-LS_spEsHAAUzUSHu3ctW21uTpXYDDACMA-C6z6XdSqnaM8EqebjBMaUlX81aYhp6UkBUlkw5ozueepCbDGvQUFL0Mcc0y7Agv7NMrsGjBLATt4P8QzJb8lKntbhu5b3ws8DBXiG2LIERiCEwUxovksDaR5avEG',
-            }}
-            style={styles.avatarImage}
-          />
-          <View style={styles.onlineDot} />
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Officer Profile Card */}
+        <View style={[styles.profileCard, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
+          <View style={styles.profileHeader}>
+            <View style={styles.avatarContainer}>
+              <Image
+                source={{
+                  uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop',
+                }}
+                style={styles.avatar as ImageStyle}
+              />
+              <View style={[styles.onlineDot, { backgroundColor: theme.badgeOperational }]} />
+            </View>
+
+            <View style={styles.officerDetails}>
+              <Text style={[styles.officerName, { color: theme.textPrimary }]}>{officer.name}</Text>
+              <Text style={[styles.officerRank, { color: theme.textSecondary }]}>
+                {officer.rank} · {officer.unit}
+              </Text>
+              <Text style={[styles.officerId, { color: theme.textMuted }]}>ID: {officer.id}</Text>
+            </View>
+          </View>
+
+          {/* Clearance & Checkpoint Bar */}
+          <View style={[styles.clearanceBar, { backgroundColor: theme.isDark ? theme.surfaceContainerLow : '#f8fafc', borderColor: theme.border }]}>
+            <View style={styles.clearanceCol}>
+              <Text style={[styles.clearanceLabel, { color: theme.textMuted }]}>CLEARANCE</Text>
+              <Text style={[styles.clearanceValue, { color: theme.badgeOperational }]}>
+                {officer.securityClearance}
+              </Text>
+            </View>
+
+            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+
+            <View style={styles.clearanceCol}>
+              <Text style={[styles.clearanceLabel, { color: theme.textMuted }]}>TERMINAL</Text>
+              <Text style={[styles.clearanceValue, { color: theme.textPrimary }]}>
+                {officer.checkpoint}
+              </Text>
+            </View>
+          </View>
         </View>
 
-        <Text style={styles.officerName}>{officer.name}</Text>
-        <View style={styles.officerBadge}>
-          <Text style={styles.officerBadgeText}>ID: {officer.id}</Text>
-        </View>
-      </View>
+        {/* Security Settings Section */}
+        <View style={[styles.sectionCard, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary, borderBottomColor: theme.borderLight }]}>
+            Security & Authentication
+          </Text>
 
-      {/* Security Section */}
-      <View style={styles.card}>
-        <Text style={styles.cardSectionTitle}>SECURITY</Text>
-        <View style={styles.cardRows}>
-          {/* Biometric Unlock */}
-          <View style={styles.toggleRow}>
-            <View style={styles.rowLeft}>
-              <MaterialIcons name="fingerprint" size={22} color="#6b7280" />
-              <Text style={styles.rowLabel}>Biometric Unlock</Text>
+          {/* Biometric Switch */}
+          <View style={[styles.settingRow, { borderBottomColor: theme.borderLight }]}>
+            <View style={styles.settingTextWrap}>
+              <Text style={[styles.settingTitle, { color: theme.textPrimary }]}>Biometric Unlock</Text>
+              <Text style={[styles.settingDesc, { color: theme.textMuted }]}>
+                Require fingerprint / face unlock for terminal access
+              </Text>
             </View>
             <Switch
               value={biometricUnlock}
               onValueChange={setBiometricUnlock}
-              trackColor={{ false: '#d1d5db', true: '#111827' }}
-              thumbColor="#ffffff"
+              trackColor={{ false: '#767577', true: theme.badgeOperational }}
+              thumbColor={biometricUnlock ? '#ffffff' : '#f4f3f4'}
             />
           </View>
 
-          {/* 2-Factor Authentication */}
-          <View style={styles.toggleRow}>
-            <View style={styles.rowLeft}>
-              <MaterialIcons name="verified-user" size={22} color="#6b7280" />
-              <Text style={styles.rowLabel}>2-Factor Authentication</Text>
+          {/* 2FA Switch */}
+          <View style={[styles.settingRow, { borderBottomColor: theme.borderLight }]}>
+            <View style={styles.settingTextWrap}>
+              <Text style={[styles.settingTitle, { color: theme.textPrimary }]}>2-Factor Authentication</Text>
+              <Text style={[styles.settingDesc, { color: theme.textMuted }]}>
+                Enforce TOTP code on every verification session
+              </Text>
             </View>
             <Switch
               value={twoFactorAuth}
               onValueChange={setTwoFactorAuth}
-              trackColor={{ false: '#d1d5db', true: '#111827' }}
-              thumbColor="#ffffff"
+              trackColor={{ false: '#767577', true: theme.badgeOperational }}
+              thumbColor={twoFactorAuth ? '#ffffff' : '#f4f3f4'}
             />
           </View>
 
-          {/* Change Password */}
-          <TouchableOpacity
-            style={styles.linkRow}
-            onPress={() =>
-              Alert.alert('Change Password', 'Security key verification required.')
-            }
-          >
-            <View style={styles.rowLeft}>
-              <MaterialIcons name="vpn-key" size={22} color="#6b7280" />
-              <Text style={styles.rowLabel}>Change Password</Text>
-            </View>
-            <MaterialIcons name="chevron-right" size={22} color="#9ca3af" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* App Settings Section */}
-      <View style={styles.card}>
-        <Text style={styles.cardSectionTitle}>APP SETTINGS</Text>
-        <View style={styles.cardRows}>
-          {/* Language */}
-          <TouchableOpacity
-            style={styles.linkRow}
-            onPress={() => Alert.alert('Language', 'Current language: English (Default)')}
-          >
-            <View style={styles.rowLeft}>
-              <MaterialIcons name="language" size={22} color="#6b7280" />
-              <Text style={styles.rowLabel}>Language</Text>
-            </View>
-            <View style={styles.rowRight}>
-              <Text style={styles.rowValueText}>English</Text>
-              <MaterialIcons name="chevron-right" size={22} color="#9ca3af" />
-            </View>
-          </TouchableOpacity>
-
-          {/* Dark Mode */}
-          <View style={styles.toggleRow}>
-            <View style={styles.rowLeft}>
-              <MaterialIcons name="dark-mode" size={22} color="#6b7280" />
-              <Text style={styles.rowLabel}>Dark Mode</Text>
+          {/* Notifications Switch */}
+          <View style={styles.settingRow}>
+            <View style={styles.settingTextWrap}>
+              <Text style={[styles.settingTitle, { color: theme.textPrimary }]}>Security Threat Alerts</Text>
+              <Text style={[styles.settingDesc, { color: theme.textMuted }]}>
+                Real-time push notifications on watchlist matches
+              </Text>
             </View>
             <Switch
-              value={darkMode}
-              onValueChange={setDarkMode}
-              trackColor={{ false: '#d1d5db', true: '#111827' }}
-              thumbColor="#ffffff"
+              value={notifications}
+              onValueChange={setNotifications}
+              trackColor={{ false: '#767577', true: theme.badgeOperational }}
+              thumbColor={notifications ? '#ffffff' : '#f4f3f4'}
+            />
+          </View>
+        </View>
+
+        {/* Application Preferences Section */}
+        <View style={[styles.sectionCard, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary, borderBottomColor: theme.borderLight }]}>
+            Appearance & System
+          </Text>
+
+          {/* Dark Mode Switch */}
+          <View style={[styles.settingRow, { borderBottomColor: theme.borderLight }]}>
+            <View style={styles.settingTextWrap}>
+              <Text style={[styles.settingTitle, { color: theme.textPrimary }]}>Dark Mode</Text>
+              <Text style={[styles.settingDesc, { color: theme.textMuted }]}>
+                Optimize interface for low-light night border operations
+              </Text>
+            </View>
+            <Switch
+              value={isDark}
+              onValueChange={handleToggleTheme}
+              trackColor={{ false: '#767577', true: theme.badgeOperational }}
+              thumbColor={isDark ? '#ffffff' : '#f4f3f4'}
             />
           </View>
 
-          {/* Notifications */}
+          {/* Language Selector */}
           <TouchableOpacity
-            style={styles.linkRow}
-            onPress={() => Alert.alert('Notifications', 'All force alerts enabled.')}
+            style={[styles.linkRow, { borderBottomColor: theme.borderLight }]}
+            onPress={() => Alert.alert('Language', 'System Language: English (IN) · Hindi supported.')}
           >
-            <View style={styles.rowLeft}>
-              <MaterialIcons name="notifications" size={22} color="#6b7280" />
-              <Text style={styles.rowLabel}>Notifications</Text>
+            <View>
+              <Text style={[styles.settingTitle, { color: theme.textPrimary }]}>Language / भाषा</Text>
+              <Text style={[styles.settingDesc, { color: theme.textMuted }]}>English (Default)</Text>
             </View>
-            <MaterialIcons name="chevron-right" size={22} color="#9ca3af" />
+            <MaterialIcons name="chevron-right" size={20} color={theme.textMuted} />
+          </TouchableOpacity>
+
+          {/* Export Audit Logs */}
+          <TouchableOpacity style={styles.linkRow} onPress={handleAuditLogExport}>
+            <View>
+              <Text style={[styles.settingTitle, { color: theme.textPrimary }]}>Export Terminal Audit Logs</Text>
+              <Text style={[styles.settingDesc, { color: theme.textMuted }]}>Encrypted compliance archive</Text>
+            </View>
+            <MaterialIcons name="download" size={20} color={theme.textSecondary} />
           </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Support Section */}
-      <View style={styles.card}>
-        <Text style={styles.cardSectionTitle}>SUPPORT</Text>
-        <View style={styles.cardRows}>
+        {/* Support & Logout */}
+        <View style={[styles.sectionCard, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
           <TouchableOpacity
-            style={styles.linkRow}
-            onPress={() => Alert.alert('Help Center', 'SSB Operations Helpline: 1800-11-SSB')}
+            style={[styles.linkRow, { borderBottomColor: theme.borderLight }]}
+            onPress={handleSupport}
           >
-            <View style={styles.rowLeft}>
-              <MaterialIcons name="help" size={22} color="#6b7280" />
-              <Text style={styles.rowLabel}>Help Center</Text>
+            <View>
+              <Text style={[styles.settingTitle, { color: theme.textPrimary }]}>SSB Technical Support</Text>
+              <Text style={[styles.settingDesc, { color: theme.textMuted }]}>24x7 Control Room helpline</Text>
             </View>
-            <MaterialIcons name="chevron-right" size={22} color="#9ca3af" />
+            <MaterialIcons name="help-outline" size={20} color={theme.textSecondary} />
           </TouchableOpacity>
 
+          {/* Logout Button */}
           <TouchableOpacity
-            style={styles.linkRow}
-            onPress={() => Alert.alert('Privacy & Security', 'Official MHA Security Directives.')}
+            style={[styles.logoutBtn, { backgroundColor: theme.isDark ? theme.surfaceContainerLow : '#fef2f2', borderColor: theme.isDark ? theme.borderDark : '#fecaca' }]}
+            onPress={onLogout}
+            activeOpacity={0.85}
           >
-            <View style={styles.rowLeft}>
-              <MaterialIcons name="policy" size={22} color="#6b7280" />
-              <Text style={styles.rowLabel}>Privacy & Security</Text>
-            </View>
-            <MaterialIcons name="chevron-right" size={22} color="#9ca3af" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.linkRow}
-            onPress={() => Alert.alert('Contact Support', 'Duty Officer: +91 11 2436 8201')}
-          >
-            <View style={styles.rowLeft}>
-              <MaterialIcons name="support-agent" size={22} color="#6b7280" />
-              <Text style={styles.rowLabel}>Contact Support</Text>
-            </View>
-            <MaterialIcons name="chevron-right" size={22} color="#9ca3af" />
+            <MaterialIcons name="logout" size={18} color="#ef4444" />
+            <Text style={styles.logoutBtnText}>LOG OUT OF SESSION</Text>
           </TouchableOpacity>
         </View>
-      </View>
-
-      {/* Account Actions / Logout */}
-      <View style={styles.accountActionsSection}>
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={() => {
-            Alert.alert(
-              'Log Out',
-              'Are you sure you want to end your active session?',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Log Out',
-                  style: 'destructive',
-                  onPress: onLogout,
-                },
-              ]
-            );
-          }}
-          activeOpacity={0.85}
-        >
-          <MaterialIcons name="logout" size={20} color="#ffffff" />
-          <Text style={styles.logoutButtonText}>LOG OUT</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
   },
   scrollContent: {
     paddingHorizontal: spacing.marginMobile,
-    paddingVertical: 24,
-    paddingBottom: 100,
-    gap: 20,
-    maxWidth: 480,
+    paddingVertical: 14,
+    paddingBottom: 90,
+    maxWidth: spacing.containerMaxWidth,
     alignSelf: 'center',
     width: '100%',
+    gap: 14,
   },
-  profileSection: {
+  profileCard: {
+    borderRadius: rounded.xl,
+    borderWidth: 1,
+    padding: 16,
+    gap: 14,
+  },
+  profileHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    gap: 12,
   },
-  avatarWrapper: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    borderWidth: 2,
-    borderColor: '#000000',
+  avatarContainer: {
     position: 'relative',
-    marginBottom: 12,
   },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 48,
+  avatar: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
   },
   onlineDot: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#22c55e',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     borderWidth: 2,
     borderColor: '#ffffff',
   },
+  officerDetails: {
+    flex: 1,
+    gap: 2,
+  },
   officerName: {
-    fontSize: 24,
+    fontSize: 17,
     fontWeight: '700',
-    color: '#1a1b1f',
   },
-  officerBadge: {
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: rounded.default,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+  officerRank: {
+    fontSize: 13,
   },
-  officerBadgeText: {
-    fontSize: 12,
+  officerId: {
+    fontSize: 11,
     fontFamily: typography.fontFamily.mono,
-    color: '#4b5563',
+    letterSpacing: 0.5,
   },
-  card: {
-    backgroundColor: '#ffffff',
+  clearanceBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderRadius: rounded.lg,
+    borderWidth: 1,
+  },
+  clearanceCol: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  clearanceLabel: {
+    fontSize: 9,
+    fontFamily: typography.fontFamily.mono,
+    letterSpacing: 0.8,
+  },
+  clearanceValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: typography.fontFamily.mono,
+  },
+  divider: {
+    width: 1,
+    height: 24,
+  },
+  sectionCard: {
     borderRadius: rounded.xl,
-    padding: 16,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-      },
-      default: {
-        elevation: 1,
-      },
-    }),
+    padding: 14,
+    gap: 8,
   },
-  cardSectionTitle: {
-    fontSize: 12,
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
     fontFamily: typography.fontFamily.mono,
-    color: '#4b5563',
-    letterSpacing: 1,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    textTransform: 'uppercase',
     paddingBottom: 8,
-    marginBottom: 12,
+    borderBottomWidth: 1,
   },
-  cardRows: {
-    gap: 16,
-  },
-  toggleRow: {
+  settingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  settingTextWrap: {
+    flex: 1,
+    marginRight: 10,
+    gap: 2,
+  },
+  settingTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  settingDesc: {
+    fontSize: 11,
+    lineHeight: 15,
   },
   linkRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
   },
-  rowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  rowRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  rowLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1a1b1f',
-  },
-  rowValueText: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  accountActionsSection: {
+  logoutBtn: {
     marginTop: 8,
-  },
-  logoutButton: {
-    backgroundColor: '#000000',
-    borderRadius: rounded.default,
-    paddingVertical: 14,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    paddingVertical: 12,
+    borderRadius: rounded.lg,
+    borderWidth: 1,
+    gap: 6,
   },
-  logoutButtonText: {
-    color: '#ffffff',
+  logoutBtnText: {
+    color: '#ef4444',
     fontSize: 13,
-    fontFamily: typography.fontFamily.mono,
     fontWeight: '700',
-    letterSpacing: 1,
+    fontFamily: typography.fontFamily.mono,
+    letterSpacing: 0.5,
   },
 });

@@ -3,330 +3,357 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
-  Platform,
+  ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors, typography, rounded, spacing } from '../theme/theme';
+import { getTheme, typography, rounded, spacing } from '../theme/theme';
 
 interface FaceCaptureScreenProps {
   onBack: () => void;
   onNext: () => void;
+  isDark?: boolean;
 }
 
 export const FaceCaptureScreen: React.FC<FaceCaptureScreenProps> = ({
   onBack,
   onNext,
+  isDark = false,
 }) => {
-  const [photoCaptured, setPhotoCaptured] = useState(false);
+  const theme = getTheme(isDark);
+  const [isCapturing, setIsCapturing] = useState<boolean>(false);
+  const [photoCaptured, setPhotoCaptured] = useState<boolean>(false);
 
   const handleCapture = () => {
-    setPhotoCaptured(true);
+    setIsCapturing(true);
+    setTimeout(() => {
+      setIsCapturing(false);
+      setPhotoCaptured(true);
+    }, 900);
   };
 
   const handleRetake = () => {
     setPhotoCaptured(false);
   };
 
+  const handleProceed = () => {
+    if (!photoCaptured) {
+      Alert.alert(
+        'Photo Required',
+        'Please capture the subject photo before proceeding to document upload.'
+      );
+      return;
+    }
+    onNext();
+  };
+
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Back Navigation */}
-      <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-        <MaterialIcons name="arrow-back" size={20} color="#475569" />
-        <Text style={styles.backBtnText}>Back to Scan</Text>
-      </TouchableOpacity>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Back Link */}
+        <TouchableOpacity style={styles.backLink} onPress={onBack}>
+          <MaterialIcons name="arrow-back" size={18} color={theme.textSecondary} />
+          <Text style={[styles.backLinkText, { color: theme.textSecondary }]}>Back to Dashboard</Text>
+        </TouchableOpacity>
 
-      {/* Header Section */}
-      <View style={styles.headerSection}>
-        <View>
-          <Text style={styles.pageTitle}>New Verification</Text>
-          <Text style={styles.pageSubtitle}>Complete each step to verify the identity.</Text>
-        </View>
-        <View style={styles.idBadge}>
-          <Text style={styles.idBadgeLabel}>ID:</Text>
-          <Text style={styles.idBadgeValue}>VF-20481</Text>
-        </View>
-      </View>
-
-      {/* Stepper */}
-      <View style={styles.stepperContainer}>
-        {/* Step 1 (Active) */}
-        <View style={styles.stepItem}>
-          <View style={[styles.stepCircle, styles.stepCircleActive]}>
-            <Text style={styles.stepNumActive}>1</Text>
+        {/* Page Title & ID Badge Header */}
+        <View style={styles.headerSection}>
+          <View style={styles.headerTitleCol}>
+            <Text style={[styles.pageTitle, { color: theme.textPrimary }]}>New Verification</Text>
+            <Text style={[styles.pageSubtitle, { color: theme.textMuted }]} numberOfLines={1}>
+              Complete each step to verify the identity.
+            </Text>
           </View>
-          <Text style={[styles.stepLabel, styles.stepLabelActive]}>Live Capture</Text>
-        </View>
 
-        <View style={styles.stepLine} />
-
-        {/* Step 2 */}
-        <View style={styles.stepItem}>
-          <View style={styles.stepCircle}>
-            <Text style={styles.stepNum}>2</Text>
-          </View>
-          <Text style={styles.stepLabel}>Document Upload</Text>
-        </View>
-
-        <View style={styles.stepLine} />
-
-        {/* Step 3 */}
-        <View style={styles.stepItem}>
-          <View style={styles.stepCircle}>
-            <Text style={styles.stepNum}>3</Text>
-          </View>
-          <Text style={styles.stepLabel}>Result</Text>
-        </View>
-      </View>
-
-      {/* Camera Section */}
-      <View style={styles.cameraCard}>
-        <View style={styles.cameraHeader}>
-          <View>
-            <Text style={styles.cameraTitle}>Live Face Capture</Text>
-            <Text style={styles.cameraSubtitle}>Position face inside the guide.</Text>
-          </View>
-          <View style={styles.cameraReadyBadge}>
-            <View style={styles.readyDot} />
-            <Text style={styles.readyText}>CAMERA READY</Text>
+          <View style={[styles.idBadge, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
+            <Text style={[styles.idBadgeLabel, { color: theme.textMuted }]}>ID:</Text>
+            <Text style={[styles.idBadgeValue, { color: theme.textPrimary }]}>VF-20481</Text>
           </View>
         </View>
 
-        {/* Camera Preview Area */}
-        <View style={styles.cameraViewport}>
-          {/* Face Guide Overlay */}
-          <View
-            style={[
-              styles.faceGuideOverlay,
-              photoCaptured && styles.faceGuideCaptured,
-            ]}
-          >
-            <MaterialIcons
-              name={photoCaptured ? 'check-circle' : 'face'}
-              size={54}
-              color={photoCaptured ? '#16a34a' : 'rgba(15, 23, 42, 0.4)'}
-            />
-            <View style={styles.faceGuidePill}>
-              <Text style={styles.faceGuideText}>
-                {photoCaptured ? 'FACE ACQUIRED' : 'FACE GUIDE'}
+        {/* Stepper Navigation (Responsive Flex Layout) */}
+        <View style={[styles.stepperContainer, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
+          {/* Step 1 (Active) */}
+          <View style={styles.stepItem}>
+            <View style={[styles.stepCircle, styles.stepCircleActive]}>
+              <Text style={styles.stepNumActive}>1</Text>
+            </View>
+            <Text style={[styles.stepLabel, { color: theme.textPrimary, fontWeight: '700' }]} numberOfLines={1}>
+              Live Capture
+            </Text>
+          </View>
+
+          <View style={[styles.stepLine, { backgroundColor: theme.border }]} />
+
+          {/* Step 2 */}
+          <View style={styles.stepItem}>
+            <View style={[styles.stepCircle, { backgroundColor: theme.isDark ? theme.surfaceContainerHigh : '#f3f4f6', borderColor: theme.border }]}>
+              <Text style={[styles.stepNum, { color: theme.textMuted }]}>2</Text>
+            </View>
+            <Text style={[styles.stepLabel, { color: theme.textMuted }]} numberOfLines={1}>
+              Upload
+            </Text>
+          </View>
+
+          <View style={[styles.stepLine, { backgroundColor: theme.border }]} />
+
+          {/* Step 3 */}
+          <View style={styles.stepItem}>
+            <View style={[styles.stepCircle, { backgroundColor: theme.isDark ? theme.surfaceContainerHigh : '#f3f4f6', borderColor: theme.border }]}>
+              <Text style={[styles.stepNum, { color: theme.textMuted }]}>3</Text>
+            </View>
+            <Text style={[styles.stepLabel, { color: theme.textMuted }]} numberOfLines={1}>
+              Result
+            </Text>
+          </View>
+        </View>
+
+        {/* Camera Live Preview Card */}
+        <View style={[styles.cameraCard, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
+          <View style={styles.cameraHeader}>
+            <View style={{ flex: 1, marginRight: 6 }}>
+              <Text style={[styles.cameraTitle, { color: theme.textPrimary }]}>Live Face Capture</Text>
+              <Text style={[styles.cameraSubtitle, { color: theme.textMuted }]}>
+                Position face inside the guide.
+              </Text>
+            </View>
+
+            <View style={[styles.cameraReadyBadge, { backgroundColor: theme.isDark ? '#183a24' : '#e6f4ea', borderColor: theme.isDark ? '#2d5f3f' : '#bbf7d0' }]}>
+              <View style={[styles.readyDot, { backgroundColor: theme.badgeOperational }]} />
+              <Text style={[styles.cameraReadyText, { color: theme.isDark ? '#4cd964' : '#137333' }]}>
+                {photoCaptured ? 'ACQUIRED' : 'CAMERA READY'}
               </Text>
             </View>
           </View>
 
-          {/* Live Indicator */}
-          <View style={styles.liveIndicatorPill}>
-            <MaterialIcons name="info" size={16} color="#0f172a" />
-            <Text style={styles.liveIndicatorText}>
-              {photoCaptured ? 'PHOTO FROZEN' : 'LIVE PREVIEW'}
+          {/* Viewport */}
+          <View style={[styles.viewport, { backgroundColor: theme.isDark ? '#0e0f12' : '#f0f4f8' }]}>
+            <View style={[styles.faceGuideOval, { borderColor: photoCaptured ? theme.badgeOperational : (theme.isDark ? '#6b7280' : '#4b5563') }]}>
+              <MaterialIcons
+                name="account-circle"
+                size={72}
+                color={photoCaptured ? theme.badgeOperational : (theme.isDark ? '#4b5563' : '#9ca3af')}
+              />
+              <View style={[styles.guidePill, { backgroundColor: theme.isDark ? 'rgba(30,31,35,0.85)' : 'rgba(255,255,255,0.85)' }]}>
+                <Text style={[styles.guidePillText, { color: theme.textPrimary }]}>
+                  {photoCaptured ? 'FACE ACQUIRED ✓' : 'FACE GUIDE'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={[styles.liveIndicator, { backgroundColor: theme.isDark ? 'rgba(30,31,35,0.9)' : 'rgba(255,255,255,0.9)' }]}>
+              <MaterialIcons name="info" size={13} color={theme.textMuted} />
+              <Text style={[styles.liveIndicatorText, { color: theme.textPrimary }]}>LIVE PREVIEW</Text>
+            </View>
+          </View>
+
+          {/* Capture Actions */}
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              style={[
+                styles.captureButton,
+                { backgroundColor: theme.isDark ? '#ffffff' : '#0f172a' },
+                isCapturing && { opacity: 0.7 },
+              ]}
+              onPress={handleCapture}
+              disabled={isCapturing}
+              activeOpacity={0.85}
+            >
+              {isCapturing ? (
+                <ActivityIndicator color={theme.isDark ? '#000000' : '#ffffff'} size="small" />
+              ) : (
+                <>
+                  <MaterialIcons
+                    name="camera-alt"
+                    size={18}
+                    color={theme.isDark ? '#000000' : '#ffffff'}
+                  />
+                  <Text style={[styles.captureButtonText, { color: theme.isDark ? '#000000' : '#ffffff' }]}>
+                    {photoCaptured ? 'Recapture' : 'Capture Photo'}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.retakeButton, { borderColor: theme.border, backgroundColor: theme.surfaceCard }]}
+              onPress={handleRetake}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="refresh" size={18} color={theme.textPrimary} />
+              <Text style={[styles.retakeButtonText, { color: theme.textPrimary }]}>Retake</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Capture Guidelines Checklist */}
+        <View style={styles.checklistSection}>
+          <Text style={[styles.checklistHeader, { color: theme.textPrimary }]}>Capture checklist</Text>
+          <View style={styles.checklistGrid}>
+            <View style={[styles.checkItem, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
+              <MaterialIcons name="check-circle" size={16} color={theme.badgeOperational} />
+              <Text style={[styles.checkItemText, { color: theme.textSecondary }]}>Ensure face is centered</Text>
+            </View>
+
+            <View style={[styles.checkItem, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
+              <MaterialIcons name="check-circle" size={16} color={theme.badgeOperational} />
+              <Text style={[styles.checkItemText, { color: theme.textSecondary }]}>Good lighting on subject</Text>
+            </View>
+
+            <View style={[styles.checkItem, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
+              <MaterialIcons name="check-circle" size={16} color={theme.badgeOperational} />
+              <Text style={[styles.checkItemText, { color: theme.textSecondary }]}>Remove mask or glasses</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Footer Meta & Next Button */}
+        <View style={[styles.footerCard, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
+          <View style={styles.metaRow}>
+            <Text style={[styles.footerMetaText, { color: theme.textMuted }]}>
+              Checkpoint: <Text style={{ color: theme.textPrimary, fontWeight: '600' }}>CHK-00184</Text>
+            </Text>
+            <Text style={[styles.footerMetaText, { color: theme.textMuted }]}>
+              Officer: <Text style={{ color: theme.textPrimary, fontWeight: '600' }}>OFF-1042</Text>
             </Text>
           </View>
-        </View>
 
-        {/* Action Buttons */}
-        <View style={styles.cameraActions}>
           <TouchableOpacity
-            style={styles.captureBtn}
-            onPress={handleCapture}
+            style={[
+              styles.nextButton,
+              { backgroundColor: theme.isDark ? '#ffffff' : '#0f172a' },
+              !photoCaptured && { opacity: 0.6 },
+            ]}
+            onPress={handleProceed}
             activeOpacity={0.85}
           >
-            <MaterialIcons name="camera-alt" size={18} color="#ffffff" />
-            <Text style={styles.captureBtnText}>
-              {photoCaptured ? 'Photo Captured' : 'Capture Photo'}
+            <Text style={[styles.nextButtonText, { color: theme.isDark ? '#000000' : '#ffffff' }]}>
+              Next: Document Upload
             </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.retakeBtn}
-            onPress={handleRetake}
-            activeOpacity={0.85}
-          >
-            <MaterialIcons name="refresh" size={18} color="#0f172a" />
-            <Text style={styles.retakeBtnText}>Retake</Text>
+            <MaterialIcons name="arrow-forward" size={18} color={theme.isDark ? '#000000' : '#ffffff'} />
           </TouchableOpacity>
         </View>
-      </View>
-
-      {/* Checklist (3 cards) */}
-      <View style={styles.checklistGrid}>
-        <View style={styles.checkCard}>
-          <MaterialIcons name="center-focus-strong" size={20} color="#0f172a" />
-          <Text style={styles.checkCardText}>Ensure face is centered</Text>
-        </View>
-
-        <View style={styles.checkCard}>
-          <MaterialIcons name="light-mode" size={20} color="#0f172a" />
-          <Text style={styles.checkCardText}>Good lighting</Text>
-        </View>
-
-        <View style={styles.checkCard}>
-          <MaterialIcons name="masks" size={20} color="#0f172a" />
-          <Text style={styles.checkCardText}>Remove mask/glasses</Text>
-        </View>
-      </View>
-
-      {/* Footer Data & Next Action */}
-      <View style={styles.footerCard}>
-        <View style={styles.footerDataGroup}>
-          <View style={styles.footerDataItem}>
-            <Text style={styles.footerDataLabel}>CHECKPOINT ID</Text>
-            <Text style={styles.footerDataValue}>CP-08A4-219</Text>
-          </View>
-          <View style={styles.footerDataItem}>
-            <Text style={styles.footerDataLabel}>OFFICER ID</Text>
-            <Text style={styles.footerDataValue}>OFF-1042</Text>
-          </View>
-          <View style={[styles.footerDataItem, styles.hideOnSmall]}>
-            <Text style={styles.footerDataLabel}>TIMESTAMP</Text>
-            <Text style={styles.footerDataValue}>2025-03-08 14:32:18 UTC</Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={[styles.nextBtn, !photoCaptured && styles.nextBtnDisabled]}
-          onPress={() => {
-            if (!photoCaptured) {
-              Alert.alert('Face Capture Required', 'Please tap "Capture Photo" before proceeding to document upload.');
-              return;
-            }
-            onNext();
-          }}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.nextBtnText}>Next</Text>
-          <MaterialIcons name="arrow-forward" size={18} color="#ffffff" />
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
   },
   scrollContent: {
     paddingHorizontal: spacing.marginMobile,
-    paddingVertical: 20,
-    paddingBottom: 100,
+    paddingVertical: 14,
+    paddingBottom: 90,
     maxWidth: spacing.containerMaxWidth,
     alignSelf: 'center',
     width: '100%',
-    gap: 20,
+    gap: 14,
   },
-  backBtn: {
+  backLink: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: -8,
+    gap: 4,
+    alignSelf: 'flex-start',
   },
-  backBtnText: {
-    fontSize: 14,
-    color: '#475569',
+  backLinkText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
   headerSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  headerTitleCol: {
+    flex: 1,
+    gap: 2,
   },
   pageTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#0f172a',
   },
   pageSubtitle: {
-    fontSize: 14,
-    color: '#475569',
-    marginTop: 2,
+    fontSize: 12,
   },
   idBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: rounded.full,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: '#f8fafc',
+    borderRadius: rounded.default,
+    flexShrink: 0,
   },
   idBadgeLabel: {
-    fontSize: 12,
+    fontSize: 10,
     fontFamily: typography.fontFamily.mono,
-    color: '#475569',
   },
   idBadgeValue: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: typography.fontFamily.mono,
     fontWeight: '700',
-    color: '#0f172a',
   },
   stepperContainer: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: rounded.lg,
-    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderWidth: 1,
+    borderRadius: rounded.lg,
+    padding: 10,
+    gap: 4,
   },
   stepItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    flexShrink: 1,
   },
   stepCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
     justifyContent: 'center',
     alignItems: 'center',
+    flexShrink: 0,
   },
   stepCircleActive: {
     backgroundColor: '#0f172a',
     borderColor: '#0f172a',
   },
   stepNum: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '600',
-    color: '#64748b',
   },
   stepNumActive: {
-    fontSize: 13,
-    fontWeight: '700',
     color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   stepLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#64748b',
-  },
-  stepLabelActive: {
-    color: '#0f172a',
-    fontWeight: '700',
+    fontSize: 11,
+    fontFamily: typography.fontFamily.mono,
   },
   stepLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#e2e8f0',
-    marginHorizontal: 12,
+    minWidth: 10,
+    marginHorizontal: 4,
   },
   cameraCard: {
-    backgroundColor: '#ffffff',
     borderRadius: rounded.xl,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    padding: 16,
-    gap: 16,
+    padding: 14,
+    gap: 12,
   },
   cameraHeader: {
     flexDirection: 'row',
@@ -334,203 +361,154 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cameraTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#0f172a',
+    fontSize: 16,
+    fontWeight: '700',
   },
   cameraSubtitle: {
-    fontSize: 14,
-    color: '#475569',
+    fontSize: 12,
   },
   cameraReadyBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#dcfce7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: rounded.default,
     borderWidth: 1,
-    borderColor: '#bbf7d0',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: rounded.full,
+    gap: 4,
+    flexShrink: 0,
   },
   readyDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#166534',
   },
-  readyText: {
-    fontSize: 11,
+  cameraReadyText: {
+    fontSize: 10,
     fontFamily: typography.fontFamily.mono,
     fontWeight: '700',
-    color: '#166534',
   },
-  cameraViewport: {
-    height: 260,
+  viewport: {
+    height: 240,
     borderRadius: rounded.lg,
-    backgroundColor: '#f1f5f9',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
     overflow: 'hidden',
   },
-  faceGuideOverlay: {
-    width: 170,
-    height: 210,
-    borderRadius: 85,
+  faceGuideOval: {
+    width: 140,
+    height: 180,
+    borderRadius: 70,
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: '#0f172a',
-    backgroundColor: 'rgba(15, 23, 42, 0.04)',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
-  faceGuideCaptured: {
-    borderColor: '#16a34a',
-    backgroundColor: 'rgba(22, 163, 74, 0.08)',
+  guidePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: rounded.full,
   },
-  faceGuidePill: {
-    backgroundColor: 'rgba(226, 232, 240, 0.9)',
-    paddingHorizontal: 10,
+  guidePillText: {
+    fontSize: 10,
+    fontFamily: typography.fontFamily.mono,
+    fontWeight: '700',
+  },
+  liveIndicator: {
+    position: 'absolute',
+    bottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: rounded.full,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  faceGuideText: {
-    fontSize: 11,
-    fontFamily: typography.fontFamily.mono,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  liveIndicatorPill: {
-    position: 'absolute',
-    bottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(248, 250, 252, 0.9)',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: rounded.full,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
   },
   liveIndicatorText: {
-    fontSize: 11,
+    fontSize: 9,
     fontFamily: typography.fontFamily.mono,
-    fontWeight: '700',
-    color: '#0f172a',
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
-  cameraActions: {
+  actionRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  captureBtn: {
-    flex: 1,
-    backgroundColor: '#0f172a',
-    paddingVertical: 12,
-    borderRadius: rounded.default,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
     gap: 8,
   },
-  captureBtnText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  retakeBtn: {
+  captureButton: {
     flex: 1,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#0f172a',
-    paddingVertical: 12,
-    borderRadius: rounded.default,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
-  },
-  retakeBtnText: {
-    color: '#0f172a',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  checklistGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  checkCard: {
-    flex: 1,
-    minWidth: 150,
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    paddingVertical: 12,
     borderRadius: rounded.lg,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  checkCardText: {
-    fontSize: 13,
-    color: '#0f172a',
-    fontWeight: '500',
-  },
-  footerCard: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: rounded.lg,
-    padding: 16,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 16,
-  },
-  footerDataGroup: {
-    flexDirection: 'row',
-    gap: 20,
-  },
-  footerDataItem: {},
-  footerDataLabel: {
-    fontSize: 11,
-    fontFamily: typography.fontFamily.mono,
-    color: '#475569',
-  },
-  footerDataValue: {
-    fontSize: 12,
-    fontFamily: typography.fontFamily.mono,
-    color: '#0f172a',
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  hideOnSmall: {
-    display: Platform.OS === 'web' ? 'flex' : 'none',
-  },
-  nextBtn: {
-    backgroundColor: '#0f172a',
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: rounded.default,
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 6,
   },
-  nextBtnDisabled: {
-    opacity: 0.6,
+  captureButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
-  nextBtnText: {
-    color: '#ffffff',
-    fontSize: 13,
+  retakeButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: rounded.lg,
+    borderWidth: 1,
+    gap: 4,
+  },
+  retakeButtonText: {
+    fontSize: 14,
     fontWeight: '600',
+  },
+  checklistSection: {
+    gap: 8,
+  },
+  checklistHeader: {
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: typography.fontFamily.mono,
+    textTransform: 'uppercase',
+  },
+  checklistGrid: {
+    gap: 6,
+  },
+  checkItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: rounded.md,
+    borderWidth: 1,
+    gap: 8,
+  },
+  checkItemText: {
+    fontSize: 12,
+  },
+  footerCard: {
+    borderRadius: rounded.xl,
+    borderWidth: 1,
+    padding: 14,
+    gap: 12,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  footerMetaText: {
+    fontSize: 11,
+    fontFamily: typography.fontFamily.mono,
+  },
+  nextButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 13,
+    borderRadius: rounded.lg,
+    gap: 8,
+  },
+  nextButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

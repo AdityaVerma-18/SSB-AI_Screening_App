@@ -6,18 +6,18 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Platform,
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { ScreeningRecord } from '../types';
-import { colors, typography, rounded, spacing } from '../theme/theme';
+import { getTheme, typography, rounded } from '../theme/theme';
 
 interface RecordDetailModalProps {
   record: ScreeningRecord | null;
   visible: boolean;
   onClose: () => void;
   onUpdateStatus?: (recordId: string, newStatus: any) => void;
+  isDark?: boolean;
 }
 
 export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
@@ -25,45 +25,47 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
   visible,
   onClose,
   onUpdateStatus,
+  isDark = false,
 }) => {
   if (!record) return null;
+  const theme = getTheme(isDark);
 
   const getStatusBadge = () => {
     switch (record.status) {
       case 'VERIFIED':
         return {
           text: 'MATCH VERIFIED',
-          color: colors.success,
-          bg: colors.successBg,
-          border: colors.successBorder,
+          color: theme.successText,
+          bg: theme.successBg,
+          border: theme.successBorder,
         };
       case 'NEEDS_REVIEW':
         return {
           text: 'NEEDS REVIEW',
-          color: colors.warning,
-          bg: colors.warningBg,
-          border: colors.warningBorder,
+          color: theme.warningText,
+          bg: theme.warningBg,
+          border: theme.warningBorder,
         };
       case 'MISMATCH':
         return {
           text: 'MISMATCH DETECTED',
-          color: colors.error,
-          bg: colors.errorBg,
-          border: colors.errorBorder,
+          color: theme.errorText,
+          bg: theme.errorBg,
+          border: theme.errorBorder,
         };
       case 'HIGH_RISK':
         return {
           text: 'CRITICAL ALERT: HIGH RISK',
-          color: '#ff453a',
-          bg: '#4a0e17',
-          border: '#8b0000',
+          color: theme.errorCritical,
+          bg: theme.errorBg,
+          border: theme.errorBorder,
         };
       default:
         return {
           text: 'PENDING',
-          color: colors.onSurfaceVariant,
-          bg: colors.surfaceContainerHigh,
-          border: colors.outlineVariant,
+          color: theme.textMuted,
+          bg: theme.surfaceContainerHigh,
+          border: theme.border,
         };
     }
   };
@@ -78,229 +80,134 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.backdrop}>
-        <View style={styles.modalContent}>
+        <View style={[styles.modalContent, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
           {/* Header */}
-          <View style={styles.modalHeader}>
-            <View>
-              <Text style={styles.modalPretitle}>SSB INSPECTION AUDIT RECORD</Text>
-              <Text style={styles.modalTitle}>{record.name}</Text>
-              <Text style={styles.modalDocId}>
+          <View style={[styles.modalHeader, { borderBottomColor: theme.borderLight }]}>
+            <View style={{ flex: 1, marginRight: 6 }}>
+              <Text style={[styles.modalPretitle, { color: theme.textMuted }]}>SSB INSPECTION AUDIT RECORD</Text>
+              <Text style={[styles.modalTitle, { color: theme.textPrimary }]} numberOfLines={1}>{record.name}</Text>
+              <Text style={[styles.modalDocId, { color: theme.textMuted }]}>
                 ID: {record.id} • {record.docType} ({record.docNumber})
               </Text>
             </View>
             <TouchableOpacity
-              style={styles.closeButton}
+              style={[styles.closeButton, { backgroundColor: theme.isDark ? theme.surfaceContainerHigh : '#f3f4f6' }]}
               onPress={onClose}
               accessibilityLabel="Close record"
             >
-              <MaterialIcons name="close" size={20} color={colors.primary} />
+              <MaterialIcons name="close" size={18} color={theme.textPrimary} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.scrollBody} contentContainerStyle={{ paddingBottom: 24 }}>
-            {/* Status Banner */}
+          <ScrollView style={styles.scrollBody} contentContainerStyle={{ paddingBottom: 20 }}>
+            {/* Status Pill Banner */}
             <View
               style={[
                 styles.statusBanner,
-                { backgroundColor: badge.bg, borderColor: badge.border },
+                {
+                  backgroundColor: badge.bg,
+                  borderColor: badge.border,
+                },
               ]}
             >
-              <MaterialIcons
-                name={
-                  record.status === 'VERIFIED'
-                    ? 'verified'
-                    : record.status === 'HIGH_RISK'
-                    ? 'warning'
-                    : 'info'
-                }
-                size={20}
-                color={badge.color}
-              />
               <Text style={[styles.statusBannerText, { color: badge.color }]}>
                 {badge.text}
               </Text>
-            </View>
-
-            {/* AI Scores Summary */}
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>AI CONFIDENCE & BIOMETRICS</Text>
-              <View style={styles.scoreRow}>
-                <View style={styles.scoreItem}>
-                  <Text style={styles.scoreLabel}>Face Biometric Match</Text>
-                  <Text
-                    style={[
-                      styles.scoreValue,
-                      { color: record.matchScore > 85 ? colors.success : colors.warning },
-                    ]}
-                  >
-                    {record.matchScore}%
-                  </Text>
-                </View>
-                <View style={styles.scoreDivider} />
-                <View style={styles.scoreItem}>
-                  <Text style={styles.scoreLabel}>OCR Confidence</Text>
-                  <Text style={[styles.scoreValue, { color: colors.primary }]}>
-                    {record.ocrConfidence}%
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Document Extracted Fields */}
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>EXTRACTED IDENTITY DETAILS</Text>
-              <View style={styles.grid}>
-                <View style={styles.gridItem}>
-                  <Text style={styles.gridLabel}>Full Legal Name</Text>
-                  <Text style={styles.gridValue}>{record.name}</Text>
-                </View>
-                <View style={styles.gridItem}>
-                  <Text style={styles.gridLabel}>Date of Birth</Text>
-                  <Text style={styles.gridValue}>{record.dob}</Text>
-                </View>
-                <View style={styles.gridItem}>
-                  <Text style={styles.gridLabel}>Gender / Nationality</Text>
-                  <Text style={styles.gridValue}>
-                    {record.gender} • {record.nationality}
-                  </Text>
-                </View>
-                <View style={styles.gridItem}>
-                  <Text style={styles.gridLabel}>Document Number</Text>
-                  <Text style={[styles.gridValue, styles.monoText]}>
-                    {record.docNumber}
-                  </Text>
-                </View>
-                <View style={[styles.gridItem, { width: '100%' }]}>
-                  <Text style={styles.gridLabel}>Registered Address</Text>
-                  <Text style={styles.gridValue}>{record.address}</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Security Integrity Checklist */}
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>SECURITY INTEGRITY CHECKS</Text>
-              <View style={styles.checksList}>
-                <View style={styles.checkItem}>
-                  <MaterialIcons
-                    name={record.securityChecks.hologramDetected ? 'check-circle' : 'cancel'}
-                    size={18}
-                    color={
-                      record.securityChecks.hologramDetected
-                        ? colors.success
-                        : colors.errorCritical
-                    }
-                  />
-                  <Text style={styles.checkText}>Hologram & Optical Security Foil</Text>
-                  <Text
-                    style={[
-                      styles.checkResult,
-                      {
-                        color: record.securityChecks.hologramDetected
-                          ? colors.success
-                          : colors.errorCritical,
-                      },
-                    ]}
-                  >
-                    {record.securityChecks.hologramDetected ? 'VALID' : 'FAILED / ABSENT'}
-                  </Text>
-                </View>
-
-                <View style={styles.checkItem}>
-                  <MaterialIcons
-                    name={!record.securityChecks.tamperingDetected ? 'check-circle' : 'cancel'}
-                    size={18}
-                    color={
-                      !record.securityChecks.tamperingDetected
-                        ? colors.success
-                        : colors.errorCritical
-                    }
-                  />
-                  <Text style={styles.checkText}>Physical Tampering / Re-lamination</Text>
-                  <Text
-                    style={[
-                      styles.checkResult,
-                      {
-                        color: !record.securityChecks.tamperingDetected
-                          ? colors.success
-                          : colors.errorCritical,
-                      },
-                    ]}
-                  >
-                    {!record.securityChecks.tamperingDetected ? 'CLEAN' : 'TAMPERED'}
-                  </Text>
-                </View>
-
-                <View style={styles.checkItem}>
-                  <MaterialIcons
-                    name={!record.securityChecks.watchlistMatch ? 'check-circle' : 'warning'}
-                    size={18}
-                    color={
-                      !record.securityChecks.watchlistMatch
-                        ? colors.success
-                        : colors.errorCritical
-                    }
-                  />
-                  <Text style={styles.checkText}>MHA & Interpol Watchlist Screening</Text>
-                  <Text
-                    style={[
-                      styles.checkResult,
-                      {
-                        color: !record.securityChecks.watchlistMatch
-                          ? colors.success
-                          : colors.errorCritical,
-                      },
-                    ]}
-                  >
-                    {!record.securityChecks.watchlistMatch ? 'CLEAR' : 'MATCH DETECTED'}
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Officer Notes */}
-            {record.notes ? (
-              <View style={styles.sectionCard}>
-                <Text style={styles.sectionTitle}>OFFICER & AI AUDIT NOTES</Text>
-                <Text style={styles.notesText}>{record.notes}</Text>
-              </View>
-            ) : null}
-
-            {/* Metadata Footer */}
-            <View style={styles.metaRow}>
-              <Text style={styles.metaText}>
-                Checkpoint: {record.checkpointId} • Officer: {record.officerId} • Timestamp:{' '}
-                {record.timestamp}
+              <Text style={[styles.matchScoreText, { color: badge.color }]}>
+                Match: {record.matchScore}% · OCR: {record.ocrConfidence}%
               </Text>
             </View>
 
-            {/* Action Buttons */}
+            {/* Demographics Card */}
+            <View style={[styles.infoBlock, { backgroundColor: theme.isDark ? theme.surfaceContainerLow : '#f8fafc', borderColor: theme.border }]}>
+              <Text style={[styles.blockTitle, { color: theme.textSecondary }]}>BIOGRAPHIC PROFILE</Text>
+
+              <View style={styles.gridRow}>
+                <View style={styles.gridCol}>
+                  <Text style={[styles.fieldLabel, { color: theme.textMuted }]}>NATIONALITY</Text>
+                  <Text style={[styles.fieldValue, { color: theme.textPrimary }]}>{record.nationality}</Text>
+                </View>
+                <View style={styles.gridCol}>
+                  <Text style={[styles.fieldLabel, { color: theme.textMuted }]}>DATE OF BIRTH</Text>
+                  <Text style={[styles.fieldValue, { color: theme.textPrimary }]}>{record.dob}</Text>
+                </View>
+              </View>
+
+              <View style={styles.gridRow}>
+                <View style={styles.gridCol}>
+                  <Text style={[styles.fieldLabel, { color: theme.textMuted }]}>GENDER</Text>
+                  <Text style={[styles.fieldValue, { color: theme.textPrimary }]}>{record.gender}</Text>
+                </View>
+                <View style={styles.gridCol}>
+                  <Text style={[styles.fieldLabel, { color: theme.textMuted }]}>TERMINAL / CHECKPOINT</Text>
+                  <Text style={[styles.fieldValue, { color: theme.textPrimary }]}>{record.checkpointId}</Text>
+                </View>
+              </View>
+
+              <View style={styles.gridColFull}>
+                <Text style={[styles.fieldLabel, { color: theme.textMuted }]}>RESIDENCE / TRANSIT ADDRESS</Text>
+                <Text style={[styles.fieldValue, { color: theme.textPrimary }]}>{record.address}</Text>
+              </View>
+            </View>
+
+            {/* Security Checks */}
+            <View style={[styles.infoBlock, { backgroundColor: theme.isDark ? theme.surfaceContainerLow : '#f8fafc', borderColor: theme.border }]}>
+              <Text style={[styles.blockTitle, { color: theme.textSecondary }]}>SECURITY & TAMPER CHECKS</Text>
+
+              <View style={styles.checkRow}>
+                <Text style={[styles.checkLabel, { color: theme.textPrimary }]}>Hologram & Optical Security</Text>
+                <Text style={{ color: record.securityChecks.hologramDetected ? theme.badgeOperational : theme.errorText, fontWeight: '700', fontSize: 12 }}>
+                  {record.securityChecks.hologramDetected ? 'PASSED' : 'NOT DETECTED'}
+                </Text>
+              </View>
+
+              <View style={styles.checkRow}>
+                <Text style={[styles.checkLabel, { color: theme.textPrimary }]}>Physical / Digital Tampering</Text>
+                <Text style={{ color: !record.securityChecks.tamperingDetected ? theme.badgeOperational : theme.errorText, fontWeight: '700', fontSize: 12 }}>
+                  {!record.securityChecks.tamperingDetected ? 'CLEAN (NONE)' : 'ALERT: DETECTED'}
+                </Text>
+              </View>
+
+              <View style={styles.checkRow}>
+                <Text style={[styles.checkLabel, { color: theme.textPrimary }]}>National Watchlist / Interpol</Text>
+                <Text style={{ color: !record.securityChecks.watchlistMatch ? theme.badgeOperational : theme.errorText, fontWeight: '700', fontSize: 12 }}>
+                  {!record.securityChecks.watchlistMatch ? 'CLEAR' : 'MATCH DETECTED'}
+                </Text>
+              </View>
+
+              <View style={styles.checkRow}>
+                <Text style={[styles.checkLabel, { color: theme.textPrimary }]}>Live Biometric Match</Text>
+                <Text style={{ color: record.securityChecks.biometricMatch ? theme.badgeOperational : theme.warningText, fontWeight: '700', fontSize: 12 }}>
+                  {record.securityChecks.biometricMatch ? 'VERIFIED' : 'FAILED / MANUAL'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Officer Action Buttons */}
             <View style={styles.actionButtonsRow}>
               <TouchableOpacity
-                style={styles.exportButton}
-                onPress={() =>
-                  Alert.alert(
-                    'Exported Screening Certificate',
-                    `Certificate ID: CERT-${record.id}-${Date.now().toString().slice(-4)}\nVerification Hash: 8f92a019b8...`
-                  )
-                }
+                style={[styles.modalActionBtn, { backgroundColor: theme.badgeOperational }]}
+                onPress={() => {
+                  if (onUpdateStatus) onUpdateStatus(record.id, 'VERIFIED');
+                  Alert.alert('Status Updated', `${record.name} marked as VERIFIED.`);
+                  onClose();
+                }}
               >
-                <MaterialIcons name="print" size={18} color={colors.primary} />
-                <Text style={styles.exportButtonText}>Print Certificate</Text>
+                <MaterialIcons name="check" size={16} color="#ffffff" />
+                <Text style={styles.actionBtnText}>Approve</Text>
               </TouchableOpacity>
 
-              {onUpdateStatus && record.status !== 'VERIFIED' && (
-                <TouchableOpacity
-                  style={styles.approveButton}
-                  onPress={() => {
-                    onUpdateStatus(record.id, 'VERIFIED');
-                    onClose();
-                  }}
-                >
-                  <MaterialIcons name="check-circle" size={18} color={colors.onPrimary} />
-                  <Text style={styles.approveButtonText}>Override & Approve</Text>
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity
+                style={[styles.modalActionBtn, { backgroundColor: '#ef4444' }]}
+                onPress={() => {
+                  if (onUpdateStatus) onUpdateStatus(record.id, 'MISMATCH');
+                  Alert.alert('Status Updated', `${record.name} marked as MISMATCH.`);
+                  onClose();
+                }}
+              >
+                <MaterialIcons name="close" size={16} color="#ffffff" />
+                <Text style={styles.actionBtnText}>Flag Mismatch</Text>
+              </TouchableOpacity>
             </View>
           </ScrollView>
         </View>
@@ -312,203 +219,121 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
   },
   modalContent: {
     width: '100%',
-    maxWidth: 600,
-    maxHeight: '90%',
-    backgroundColor: colors.surfaceContainer,
+    maxWidth: 520,
+    maxHeight: '85%',
     borderRadius: rounded.xl,
     borderWidth: 1,
-    borderColor: colors.outlineVariant,
     overflow: 'hidden',
   },
   modalHeader: {
-    padding: 20,
-    backgroundColor: colors.surfaceContainerHighest,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.outlineVariant,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    padding: 14,
+    borderBottomWidth: 1,
   },
   modalPretitle: {
-    color: colors.onSurfaceVariant,
-    fontSize: 11,
+    fontSize: 9,
     fontFamily: typography.fontFamily.mono,
-    letterSpacing: 1,
-    marginBottom: 4,
+    letterSpacing: 0.8,
   },
   modalTitle: {
-    color: colors.primary,
-    fontSize: typography.sizes.headlineMd,
+    fontSize: 18,
     fontWeight: '700',
   },
   modalDocId: {
-    color: colors.onSurfaceVariant,
-    fontSize: 13,
+    fontSize: 11,
     fontFamily: typography.fontFamily.mono,
-    marginTop: 4,
   },
   closeButton: {
     padding: 6,
     borderRadius: 16,
-    backgroundColor: colors.surfaceContainer,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
   },
   scrollBody: {
-    padding: 20,
+    padding: 14,
+    gap: 12,
   },
   statusBanner: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 10,
-    padding: 14,
+    padding: 10,
     borderRadius: rounded.lg,
     borderWidth: 1,
-    marginBottom: 16,
+    marginBottom: 10,
   },
   statusBannerText: {
-    fontSize: 13,
+    fontSize: 11,
     fontFamily: typography.fontFamily.mono,
     fontWeight: '700',
-    letterSpacing: 0.5,
   },
-  sectionCard: {
-    backgroundColor: colors.surfaceContainerLow,
+  matchScoreText: {
+    fontSize: 10,
+    fontFamily: typography.fontFamily.mono,
+  },
+  infoBlock: {
     borderRadius: rounded.lg,
     borderWidth: 1,
-    borderColor: colors.outlineVariant,
-    padding: 14,
-    marginBottom: 14,
+    padding: 12,
+    gap: 8,
+    marginBottom: 10,
   },
-  sectionTitle: {
-    color: colors.onSurfaceVariant,
-    fontSize: 11,
+  blockTitle: {
+    fontSize: 10,
     fontFamily: typography.fontFamily.mono,
     letterSpacing: 0.8,
-    marginBottom: 12,
+    fontWeight: '700',
   },
-  scoreRow: {
+  gridRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  scoreItem: {
-    alignItems: 'center',
+  gridCol: {
     flex: 1,
   },
-  scoreDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: colors.outlineVariant,
+  gridColFull: {
+    width: '100%',
   },
-  scoreLabel: {
-    color: colors.onSurfaceVariant,
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  scoreValue: {
-    fontSize: 24,
-    fontWeight: '700',
+  fieldLabel: {
+    fontSize: 9,
     fontFamily: typography.fontFamily.mono,
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  gridItem: {
-    width: '47%',
-  },
-  gridLabel: {
-    color: colors.onSurfaceVariant,
-    fontSize: 11,
-    marginBottom: 2,
-  },
-  gridValue: {
-    color: colors.primary,
+  fieldValue: {
     fontSize: 13,
     fontWeight: '600',
+    marginTop: 1,
   },
-  monoText: {
-    fontFamily: typography.fontFamily.mono,
-  },
-  checksList: {
-    gap: 10,
-  },
-  checkItem: {
+  checkRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.surfaceContainer,
-    padding: 10,
-    borderRadius: rounded.default,
-  },
-  checkText: {
-    color: colors.primary,
-    fontSize: 12,
-    flex: 1,
-    marginLeft: 8,
-  },
-  checkResult: {
-    fontSize: 11,
-    fontFamily: typography.fontFamily.mono,
-    fontWeight: '700',
-  },
-  notesText: {
-    color: colors.onSurface,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  metaRow: {
-    marginTop: 8,
-    marginBottom: 20,
     alignItems: 'center',
   },
-  metaText: {
-    color: colors.onSurfaceVariant,
-    fontSize: 11,
-    fontFamily: typography.fontFamily.mono,
+  checkLabel: {
+    fontSize: 12,
   },
   actionButtonsRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
+    marginTop: 4,
   },
-  exportButton: {
+  modalActionBtn: {
     flex: 1,
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: rounded.lg,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
-    backgroundColor: colors.surfaceContainerHigh,
-  },
-  exportButtonText: {
-    color: colors.primary,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  approveButton: {
-    flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
+    paddingVertical: 11,
     borderRadius: rounded.lg,
-    backgroundColor: colors.primary,
+    gap: 6,
   },
-  approveButtonText: {
-    color: colors.onPrimary,
+  actionBtnText: {
+    color: '#ffffff',
     fontSize: 13,
     fontWeight: '700',
   },

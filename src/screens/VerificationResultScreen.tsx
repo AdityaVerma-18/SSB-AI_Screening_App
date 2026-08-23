@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { typography, rounded, spacing } from '../theme/theme';
+import { getTheme, typography, rounded, spacing } from '../theme/theme';
 import { ScreeningRecord } from '../types';
 
 interface VerificationResultScreenProps {
@@ -20,6 +20,7 @@ interface VerificationResultScreenProps {
   onAccept: (record: ScreeningRecord) => void;
   onDeny: (record: ScreeningRecord) => void;
   onNewVerification: () => void;
+  isDark?: boolean;
 }
 
 export const VerificationResultScreen: React.FC<VerificationResultScreenProps> = ({
@@ -27,7 +28,10 @@ export const VerificationResultScreen: React.FC<VerificationResultScreenProps> =
   onAccept,
   onDeny,
   onNewVerification,
+  isDark = false,
 }) => {
+  const theme = getTheme(isDark);
+
   const resultRecord: ScreeningRecord = {
     id: 'VF-20481',
     name: 'Alex Morgan',
@@ -81,28 +85,28 @@ export const VerificationResultScreen: React.FC<VerificationResultScreenProps> =
   };
 
   return (
-    <View style={styles.outerContainer}>
-      {/* Header (Task Focused) */}
-      <View style={styles.header}>
+    <View style={[styles.outerContainer, { backgroundColor: theme.background }]}>
+      {/* Header */}
+      <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.headerBorder }]}>
         <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-          <MaterialIcons name="arrow-back" size={24} color="#444748" />
+          <MaterialIcons name="arrow-back" size={22} color={theme.textPrimary} />
         </TouchableOpacity>
 
         <View style={styles.headerCenter}>
           <Image
             source={{
-              uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCJN9Vsrn5_0Wl2W9WpYgQlusuh7n_i7nCLx4GRjPkhyPgIz2EunXeYfZZgjg3sgBcBMUakGl1EVxzaG3kOqKhZMrGyBkIDSxha4hB0qLie7v6TKikGX91v2E9z6K-KwEEY1aPcsi6siRezFBwFlEXZhJV2wp4io5fFQykL0sh9PtRUrH7cQh3eBBC8nPrHrxJKONM6C0NJpI4RmJ4WN-L7KuV031wvvQqaaNBRLJVgoNM1S5xl2aUHTmDlSsKxB-kIOQ',
+              uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB62V0fU7VgX8Xcz8VzEmzn79m5m7udDvklvcajtLtgCQTQ9ErYO24i4jo_lDulzw5AIhLEHh0j7cJSLEEPYTo_A2w10QudGPstrhZqr3-L0i6H8fIVqCSdBpuxz5t446iEAVHCUN8NEWJfNBJF0mif69R9V7iA0_T-I0Zp56tWGDWZaCgnxHDXZDCyKIx6cb24lpne_8uKFKR9okGrTzzDp4V3e8jGSZTUGMtlO5M3oXgC7kCXQkYmPzaq5k2kpZp6qQ',
             }}
             style={styles.emblem as ImageStyle}
             resizeMode="contain"
           />
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            Ministry of Home Affairs | SSB — AI Document Screening
+          <Text style={[styles.headerTitle, { color: theme.textPrimary }]} numberOfLines={1}>
+            Ministry of Home Affairs | SSB
           </Text>
         </View>
 
-        <View style={styles.idBadge}>
-          <Text style={styles.idBadgeText}>ID: VF-20481</Text>
+        <View style={[styles.idBadge, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
+          <Text style={[styles.idBadgeText, { color: theme.textPrimary }]}>VF-20481</Text>
         </View>
       </View>
 
@@ -111,92 +115,98 @@ export const VerificationResultScreen: React.FC<VerificationResultScreenProps> =
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Stepper */}
-        <View style={styles.stepperContainer}>
+        {/* Stepper Navigation */}
+        <View style={[styles.stepperContainer, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
           {/* Step 1 */}
-          <View style={styles.stepCol}>
-            <View style={styles.stepCircleDone}>
-              <MaterialIcons name="check" size={16} color="#ffffff" />
+          <View style={styles.stepItem}>
+            <View style={[styles.stepCircleDone, { backgroundColor: theme.isDark ? '#143820' : '#e6f4ea', borderColor: theme.badgeOperational }]}>
+              <MaterialIcons name="check" size={14} color={theme.badgeOperational} />
             </View>
-            <Text style={styles.stepLabel}>Live Capture</Text>
+            <Text style={[styles.stepLabel, { color: theme.textPrimary }]} numberOfLines={1}>
+              Live Capture
+            </Text>
           </View>
 
-          <View style={styles.stepperLine} />
+          <View style={[styles.stepperLine, { backgroundColor: theme.border }]} />
 
           {/* Step 2 */}
-          <View style={styles.stepCol}>
-            <View style={styles.stepCircleDone}>
-              <MaterialIcons name="check" size={16} color="#ffffff" />
+          <View style={styles.stepItem}>
+            <View style={[styles.stepCircleDone, { backgroundColor: theme.isDark ? '#143820' : '#e6f4ea', borderColor: theme.badgeOperational }]}>
+              <MaterialIcons name="check" size={14} color={theme.badgeOperational} />
             </View>
-            <Text style={styles.stepLabel}>Upload</Text>
+            <Text style={[styles.stepLabel, { color: theme.textPrimary }]} numberOfLines={1}>
+              Upload
+            </Text>
           </View>
 
-          <View style={styles.stepperLine} />
+          <View style={[styles.stepperLine, { backgroundColor: theme.border }]} />
 
           {/* Step 3 (Active) */}
-          <View style={styles.stepCol}>
-            <View style={styles.stepCircleActive}>
-              <Text style={styles.stepNumActive}>3</Text>
+          <View style={styles.stepItem}>
+            <View style={[styles.stepCircleActive, { backgroundColor: theme.isDark ? '#ffffff' : '#0f172a' }]}>
+              <Text style={[styles.stepNumActive, { color: theme.isDark ? '#000000' : '#ffffff' }]}>3</Text>
             </View>
-            <Text style={styles.stepLabelActive}>Result</Text>
+            <Text style={[styles.stepLabelActive, { color: theme.textPrimary }]} numberOfLines={1}>
+              Result
+            </Text>
           </View>
         </View>
 
         {/* Identity Verified Card */}
-        <View style={styles.identityCard}>
+        <View style={[styles.identityCard, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
           <View style={styles.verifiedBadgeContainer}>
-            <View style={styles.verifiedBadge}>
-              <MaterialIcons name="verified-user" size={14} color="#137333" />
-              <Text style={styles.verifiedBadgeText}>MATCH VERIFIED</Text>
+            <View style={[styles.verifiedBadge, { backgroundColor: theme.isDark ? '#183a24' : '#e6f4ea', borderColor: theme.isDark ? '#2d5f3f' : '#bbf7d0' }]}>
+              <MaterialIcons name="verified-user" size={13} color={theme.badgeOperational} />
+              <Text style={[styles.verifiedBadgeText, { color: theme.isDark ? '#4cd964' : '#137333' }]}>MATCH VERIFIED</Text>
             </View>
           </View>
 
-          <Text style={styles.cardTitle}>Identity Verified</Text>
-          <Text style={styles.cardSubtitle}>
+          <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>Identity Verified</Text>
+          <Text style={[styles.cardSubtitle, { color: theme.textMuted }]}>
             The submitted identity matches the verification records with high confidence.
           </Text>
 
           {/* Applicant Info Box */}
-          <View style={styles.applicantBox}>
-            <View style={styles.avatarInitials}>
-              <Text style={styles.initialsText}>AM</Text>
+          <View style={[styles.applicantBox, { backgroundColor: theme.isDark ? theme.surfaceContainerLow : '#f8fafc', borderColor: theme.border }]}>
+            <View style={[styles.avatarInitials, { backgroundColor: theme.isDark ? theme.surfaceContainerHighest : '#e2e8f0' }]}>
+              <Text style={[styles.initialsText, { color: theme.textPrimary }]}>AM</Text>
             </View>
 
             <View style={styles.applicantDetails}>
-              <Text style={styles.applicantName}>Alex Morgan</Text>
-              <Text style={styles.applicantSub}>United States · DOB: 12 Mar 1992</Text>
-              <Text style={styles.applicantPid}>PID: PER-849201</Text>
+              <Text style={[styles.applicantName, { color: theme.textPrimary }]}>Alex Morgan</Text>
+              <Text style={[styles.applicantSub, { color: theme.textMuted }]}>United States · DOB: 12 Mar 1992</Text>
+              <Text style={[styles.applicantPid, { color: theme.textMuted }]}>PID: PER-849201</Text>
             </View>
 
             <View style={styles.confidenceBox}>
-              <Text style={styles.confidenceLabel}>CONFIDENCE</Text>
-              <Text style={styles.confidenceValue}>98.7%</Text>
+              <Text style={[styles.confidenceLabel, { color: theme.textMuted }]}>CONFIDENCE</Text>
+              <Text style={[styles.confidenceValue, { color: theme.badgeOperational }]}>98.7%</Text>
             </View>
           </View>
 
           {/* Sub-results Grid */}
           <View style={styles.subResultsGrid}>
-            <View style={styles.subResultItem}>
-              <Text style={styles.subResultLabel}>Face match</Text>
+            <View style={[styles.subResultItem, { backgroundColor: theme.isDark ? theme.surfaceContainerLow : '#f8fafc', borderColor: theme.border }]}>
+              <Text style={[styles.subResultLabel, { color: theme.textSecondary }]}>Face match</Text>
               <View style={styles.subResultStatus}>
-                <MaterialIcons name="check-circle" size={16} color="#137333" />
-                <Text style={styles.subResultStatusText}>PASSED</Text>
+                <MaterialIcons name="check-circle" size={15} color={theme.badgeOperational} />
+                <Text style={[styles.subResultStatusText, { color: theme.badgeOperational }]}>PASSED</Text>
               </View>
             </View>
 
-            <View style={styles.subResultItem}>
-              <Text style={styles.subResultLabel}>Liveness check</Text>
+            <View style={[styles.subResultItem, { backgroundColor: theme.isDark ? theme.surfaceContainerLow : '#f8fafc', borderColor: theme.border }]}>
+              <Text style={[styles.subResultLabel, { color: theme.textSecondary }]}>Liveness check</Text>
               <View style={styles.subResultStatus}>
-                <MaterialIcons name="check-circle" size={16} color="#137333" />
-                <Text style={styles.subResultStatusText}>PASSED</Text>
+                <MaterialIcons name="check-circle" size={15} color={theme.badgeOperational} />
+                <Text style={[styles.subResultStatusText, { color: theme.badgeOperational }]}>PASSED</Text>
               </View>
             </View>
 
-            <View style={styles.subResultItem}>
-              <Text style={styles.subResultLabel}>Watchlist</Text>
+            <View style={[styles.subResultItem, { backgroundColor: theme.isDark ? theme.surfaceContainerLow : '#f8fafc', borderColor: theme.border }]}>
+              <Text style={[styles.subResultLabel, { color: theme.textSecondary }]}>Watchlist</Text>
               <View style={styles.subResultStatus}>
-                <MaterialIcons name="check-circle" size={16} color="#137333" />
-                <Text style={styles.subResultStatusText}>CLEAR</Text>
+                <MaterialIcons name="check-circle" size={15} color={theme.badgeOperational} />
+                <Text style={[styles.subResultStatusText, { color: theme.badgeOperational }]}>CLEAR</Text>
               </View>
             </View>
           </View>
@@ -204,114 +214,110 @@ export const VerificationResultScreen: React.FC<VerificationResultScreenProps> =
 
         {/* Document Checks Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Document checks</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary, borderBottomColor: theme.borderLight }]}>
+            Document checks
+          </Text>
 
-          <View style={styles.docItemCard}>
-            <View style={styles.docIconBox}>
-              <MaterialIcons name="menu-book" size={22} color="#1a1c1c" />
+          <View style={[styles.docItemCard, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
+            <View style={[styles.docIconBox, { backgroundColor: theme.isDark ? theme.surfaceContainerHigh : '#f1f5f9' }]}>
+              <MaterialIcons name="menu-book" size={20} color={theme.textPrimary} />
             </View>
             <View style={styles.docItemDetails}>
-              <Text style={styles.docItemTitle}>Passport</Text>
-              <Text style={styles.docItemSub}>P8742031 · United States</Text>
+              <Text style={[styles.docItemTitle, { color: theme.textPrimary }]}>Passport</Text>
+              <Text style={[styles.docItemSub, { color: theme.textMuted }]}>P8742031 · United States</Text>
             </View>
-            <Text style={styles.docVerifiedTag}>VERIFIED</Text>
+            <Text style={[styles.docVerifiedTag, { color: theme.badgeOperational }]}>VERIFIED</Text>
           </View>
 
-          <View style={styles.docItemCard}>
-            <View style={styles.docIconBox}>
-              <MaterialIcons name="badge" size={22} color="#1a1c1c" />
+          <View style={[styles.docItemCard, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
+            <View style={[styles.docIconBox, { backgroundColor: theme.isDark ? theme.surfaceContainerHigh : '#f1f5f9' }]}>
+              <MaterialIcons name="badge" size={20} color={theme.textPrimary} />
             </View>
             <View style={styles.docItemDetails}>
-              <Text style={styles.docItemTitle}>National ID</Text>
-              <Text style={styles.docItemSub}>Ending 4821</Text>
+              <Text style={[styles.docItemTitle, { color: theme.textPrimary }]}>National ID</Text>
+              <Text style={[styles.docItemSub, { color: theme.textMuted }]}>Ending 4821</Text>
             </View>
-            <Text style={styles.docVerifiedTag}>VERIFIED</Text>
+            <Text style={[styles.docVerifiedTag, { color: theme.badgeOperational }]}>VERIFIED</Text>
           </View>
         </View>
 
         {/* Audit Trail Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Audit trail</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary, borderBottomColor: theme.borderLight }]}>
+            Audit trail
+          </Text>
 
-          <View style={styles.timeline}>
-            {/* Event 1 */}
+          <View style={[styles.timeline, { borderLeftColor: theme.border }]}>
             <View style={styles.timelineItem}>
-              <View style={[styles.timelineDot, styles.dotActive]} />
+              <View style={[styles.timelineDot, { backgroundColor: theme.badgeOperational }]} />
               <View style={styles.timelineContent}>
                 <View style={styles.timelineRow}>
-                  <Text style={styles.timelineEventTitle}>Verification completed</Text>
-                  <Text style={styles.timelineTime}>14:34</Text>
+                  <Text style={[styles.timelineEventTitle, { color: theme.textPrimary }]}>Verification completed</Text>
+                  <Text style={[styles.timelineTime, { color: theme.textMuted }]}>14:34</Text>
                 </View>
-                <Text style={styles.timelineEventDesc}>
+                <Text style={[styles.timelineEventDesc, { color: theme.textMuted }]}>
                   Result generated and securely recorded.
                 </Text>
               </View>
             </View>
 
-            {/* Event 2 */}
             <View style={styles.timelineItem}>
-              <View style={styles.timelineDot} />
+              <View style={[styles.timelineDot, { backgroundColor: theme.textMuted }]} />
               <View style={styles.timelineContent}>
                 <View style={styles.timelineRow}>
-                  <Text style={styles.timelineEventTitle}>Documents validated</Text>
-                  <Text style={styles.timelineTime}>14:33</Text>
+                  <Text style={[styles.timelineEventTitle, { color: theme.textPrimary }]}>Documents validated</Text>
+                  <Text style={[styles.timelineTime, { color: theme.textMuted }]}>14:33</Text>
                 </View>
-                <Text style={styles.timelineEventDesc}>
+                <Text style={[styles.timelineEventDesc, { color: theme.textMuted }]}>
                   Passport and ID checks passed.
-                </Text>
-              </View>
-            </View>
-
-            {/* Event 3 */}
-            <View style={styles.timelineItem}>
-              <View style={styles.timelineDot} />
-              <View style={styles.timelineContent}>
-                <View style={styles.timelineRow}>
-                  <Text style={styles.timelineEventTitle}>Face captured</Text>
-                  <Text style={styles.timelineTime}>14:32</Text>
-                </View>
-                <Text style={styles.timelineEventDesc}>
-                  Liveness session initiated.
                 </Text>
               </View>
             </View>
           </View>
         </View>
 
-        {/* Accept / Deny Action Section */}
-        <View style={styles.decisionSection}>
-          <TouchableOpacity style={styles.acceptBtn} onPress={handleAccept}>
-            <MaterialIcons name="check-circle" size={20} color="#ffffff" />
+        {/* Actions */}
+        <View style={[styles.decisionSection, { borderTopColor: theme.borderLight }]}>
+          <TouchableOpacity
+            style={[styles.acceptBtn, { backgroundColor: theme.badgeOperational }]}
+            onPress={handleAccept}
+          >
+            <MaterialIcons name="check-circle" size={18} color="#ffffff" />
             <Text style={styles.acceptBtnText}>Accept Verification</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.denyBtn} onPress={handleDeny}>
-            <MaterialIcons name="cancel" size={20} color="#444748" />
-            <Text style={styles.denyBtnText}>Deny Verification</Text>
+          <TouchableOpacity
+            style={[styles.denyBtn, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}
+            onPress={handleDeny}
+          >
+            <MaterialIcons name="cancel" size={18} color={theme.errorText} />
+            <Text style={[styles.denyBtnText, { color: theme.errorText }]}>Deny Verification</Text>
           </TouchableOpacity>
-
-          <Text style={styles.decisionNote}>
-            Finalizing this action will update the user's status and notify the relevant departments.
-          </Text>
         </View>
       </ScrollView>
 
-      {/* Bottom Actions Bar */}
-      <View style={styles.stickyBottomBar as ViewStyle}>
+      {/* Sticky Bottom Bar */}
+      <View style={[styles.stickyBottomBar as ViewStyle, { backgroundColor: theme.navBg, borderTopColor: theme.navBorder }]}>
         <View style={styles.secureIndicator}>
-          <MaterialIcons name="lock" size={16} color="#444748" />
-          <Text style={styles.secureIndicatorText}>SECURE SESSION</Text>
+          <MaterialIcons name="lock" size={14} color={theme.textMuted} />
+          <Text style={[styles.secureIndicatorText, { color: theme.textMuted }]}>SECURE SESSION</Text>
         </View>
 
         <View style={styles.stickyButtonsRow}>
-          <TouchableOpacity style={styles.secondaryActionBtn} onPress={handleDownload}>
-            <MaterialIcons name="download" size={16} color="#444748" />
-            <Text style={styles.secondaryActionBtnText}>Download Report</Text>
+          <TouchableOpacity
+            style={[styles.secondaryActionBtn, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}
+            onPress={handleDownload}
+          >
+            <MaterialIcons name="download" size={15} color={theme.textPrimary} />
+            <Text style={[styles.secondaryActionBtnText, { color: theme.textPrimary }]}>Report</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.secondaryActionBtn} onPress={onNewVerification}>
-            <MaterialIcons name="add" size={16} color="#444748" />
-            <Text style={styles.secondaryActionBtnText}>New Verification</Text>
+          <TouchableOpacity
+            style={[styles.secondaryActionBtn, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}
+            onPress={onNewVerification}
+          >
+            <MaterialIcons name="add" size={15} color={theme.textPrimary} />
+            <Text style={[styles.secondaryActionBtnText, { color: theme.textPrimary }]}>New</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -322,322 +328,274 @@ export const VerificationResultScreen: React.FC<VerificationResultScreenProps> =
 const styles = StyleSheet.create({
   outerContainer: {
     flex: 1,
-    backgroundColor: '#fdfcfa',
   },
   header: {
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#c4c7c8',
-    height: 64,
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.marginMobile,
     justifyContent: 'space-between',
+    borderBottomWidth: 1,
     zIndex: 50,
   },
   backBtn: {
     padding: 6,
-    marginRight: 10,
+    marginRight: 6,
   },
   headerCenter: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginRight: 10,
+    marginRight: 6,
+    overflow: 'hidden',
   },
   emblem: {
-    width: 32,
-    height: 32,
+    width: 26,
+    height: 26,
+    flexShrink: 0,
   },
   headerTitle: {
     fontSize: 12,
     fontWeight: '700',
     fontFamily: typography.fontFamily.mono,
-    color: '#1a1c1c',
-    flex: 1,
+    flexShrink: 1,
   },
   idBadge: {
     borderWidth: 1,
-    borderColor: '#8e9192',
-    paddingHorizontal: 8,
+    paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: rounded.default,
+    flexShrink: 0,
   },
   idBadgeText: {
     fontSize: 11,
     fontFamily: typography.fontFamily.mono,
-    color: '#444748',
+    fontWeight: '600',
   },
   container: {
     flex: 1,
-    backgroundColor: '#fdfcfa',
   },
   scrollContent: {
     paddingHorizontal: spacing.marginMobile,
-    paddingVertical: 20,
+    paddingVertical: 14,
     paddingBottom: 40,
     maxWidth: spacing.containerMaxWidth,
     alignSelf: 'center',
     width: '100%',
-    gap: 24,
+    gap: 14,
   },
   stepperContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#f0efee',
     borderWidth: 1,
-    borderColor: '#c4c7c8',
     borderRadius: rounded.lg,
-    padding: 16,
+    padding: 10,
+    gap: 4,
   },
-  stepCol: {
-    flex: 1,
+  stepItem: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    flexShrink: 1,
   },
   stepCircleDone: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#1a1c1c',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
+    flexShrink: 0,
   },
   stepCircleActive: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#1a1c1c',
-    backgroundColor: '#ffffff',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
+    flexShrink: 0,
   },
   stepNumActive: {
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: '700',
-    color: '#1a1c1c',
   },
   stepLabel: {
     fontSize: 11,
     fontFamily: typography.fontFamily.mono,
-    color: '#1a1c1c',
   },
   stepLabelActive: {
     fontSize: 11,
     fontFamily: typography.fontFamily.mono,
     fontWeight: '700',
-    color: '#1a1c1c',
   },
   stepperLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#c4c7c8',
-    marginHorizontal: 8,
+    minWidth: 10,
+    marginHorizontal: 4,
   },
   identityCard: {
-    backgroundColor: '#f0efee',
-    borderWidth: 1,
-    borderColor: '#c4c7c8',
     borderRadius: rounded.xl,
-    padding: 24,
+    borderWidth: 1,
+    padding: 16,
     position: 'relative',
-    gap: 16,
+    gap: 12,
   },
   verifiedBadgeContainer: {
     position: 'absolute',
-    top: 16,
-    right: 16,
+    top: 14,
+    right: 14,
   },
   verifiedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#E6F4EA',
-    borderWidth: 1,
-    borderColor: '#CEEAD6',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
     borderRadius: rounded.default,
+    borderWidth: 1,
   },
   verifiedBadgeText: {
-    color: '#137333',
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: typography.fontFamily.mono,
     fontWeight: '700',
   },
   cardTitle: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#121317',
   },
   cardSubtitle: {
-    fontSize: 14,
-    color: '#444748',
-    maxWidth: '75%',
+    fontSize: 12,
+    maxWidth: '70%',
   },
   applicantBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    padding: 16,
+    padding: 12,
     borderRadius: rounded.lg,
     borderWidth: 1,
-    borderColor: '#c4c7c8',
-    gap: 14,
+    gap: 10,
   },
   avatarInitials: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#e4e2e1',
-    borderWidth: 1,
-    borderColor: '#8e9192',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
   },
   initialsText: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
-    color: '#1a1c1c',
   },
   applicantDetails: {
     flex: 1,
   },
   applicantName: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#121317',
   },
   applicantSub: {
-    fontSize: 14,
-    color: '#444748',
-    marginTop: 2,
+    fontSize: 11,
+    marginTop: 1,
   },
   applicantPid: {
-    fontSize: 12,
+    fontSize: 10,
     fontFamily: typography.fontFamily.mono,
-    color: '#444748',
-    marginTop: 4,
+    marginTop: 2,
   },
   confidenceBox: {
     alignItems: 'flex-end',
   },
   confidenceLabel: {
-    fontSize: 11,
+    fontSize: 9,
     fontFamily: typography.fontFamily.mono,
-    color: '#444748',
   },
   confidenceValue: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#121317',
   },
   subResultsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 8,
   },
   subResultItem: {
     flex: 1,
-    minWidth: 140,
-    backgroundColor: '#ffffff',
-    padding: 12,
+    minWidth: 100,
+    padding: 10,
     borderRadius: rounded.default,
     borderWidth: 1,
-    borderColor: '#c4c7c8',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   subResultLabel: {
-    fontSize: 13,
-    color: '#444748',
+    fontSize: 11,
   },
   subResultStatus: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
   },
   subResultStatusText: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: typography.fontFamily.mono,
     fontWeight: '700',
-    color: '#137333',
   },
   section: {
-    gap: 12,
+    gap: 10,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#121317',
     borderBottomWidth: 1,
-    borderBottomColor: '#c4c7c8',
-    paddingBottom: 8,
+    paddingBottom: 6,
   },
   docItemCard: {
-    backgroundColor: '#f0efee',
-    borderWidth: 1,
-    borderColor: '#c4c7c8',
     borderRadius: rounded.lg,
-    padding: 16,
+    borderWidth: 1,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 10,
   },
   docIconBox: {
-    backgroundColor: '#ffffff',
-    padding: 8,
+    padding: 6,
     borderRadius: rounded.default,
-    borderWidth: 1,
-    borderColor: '#8e9192',
   },
   docItemDetails: {
     flex: 1,
   },
   docItemTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#121317',
   },
   docItemSub: {
-    fontSize: 13,
-    color: '#444748',
-    marginTop: 2,
+    fontSize: 11,
   },
   docVerifiedTag: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: typography.fontFamily.mono,
     fontWeight: '700',
-    color: '#137333',
   },
   timeline: {
-    paddingLeft: 16,
+    paddingLeft: 14,
     borderLeftWidth: 1,
-    borderLeftColor: '#c4c7c8',
-    marginLeft: 12,
-    gap: 18,
+    marginLeft: 10,
+    gap: 14,
   },
   timelineItem: {
     position: 'relative',
   },
   timelineDot: {
     position: 'absolute',
-    left: -22,
+    left: -19,
     top: 4,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#8e9192',
-    borderWidth: 2,
-    borderColor: '#ffffff',
-  },
-  dotActive: {
-    backgroundColor: '#1a1c1c',
+    width: 9,
+    height: 9,
+    borderRadius: 5,
   },
   timelineContent: {
     gap: 2,
@@ -648,71 +606,54 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   timelineEventTitle: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#121317',
   },
   timelineTime: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: typography.fontFamily.mono,
-    color: '#444748',
   },
   timelineEventDesc: {
-    fontSize: 13,
-    color: '#444748',
+    fontSize: 11,
   },
   decisionSection: {
-    gap: 12,
+    gap: 10,
     borderTopWidth: 1,
-    borderTopColor: '#c4c7c8',
-    paddingTop: 24,
+    paddingTop: 16,
   },
   acceptBtn: {
-    backgroundColor: '#1a1c1c',
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderRadius: rounded.lg,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   acceptBtnText: {
     color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
   },
   denyBtn: {
-    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#8e9192',
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderRadius: rounded.lg,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   denyBtnText: {
-    color: '#444748',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
-  decisionNote: {
-    fontSize: 13,
-    color: '#444748',
-    textAlign: 'center',
-    lineHeight: 18,
-  },
   stickyBottomBar: {
-    backgroundColor: '#ffffff',
     borderTopWidth: 1,
-    borderTopColor: '#c4c7c8',
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: spacing.marginMobile,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 10,
     ...Platform.select({
       web: {
         position: 'sticky' as any,
@@ -729,28 +670,24 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   secureIndicatorText: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: typography.fontFamily.mono,
-    color: '#444748',
   },
   stickyButtonsRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 6,
   },
   secondaryActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: rounded.default,
     borderWidth: 1,
-    borderColor: '#c4c7c8',
-    backgroundColor: '#ffffff',
   },
   secondaryActionBtnText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#444748',
+    fontSize: 11,
+    fontWeight: '600',
   },
 });

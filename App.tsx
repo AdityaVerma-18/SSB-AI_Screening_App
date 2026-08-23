@@ -17,14 +17,18 @@ import { RecordsScreen } from './src/screens/RecordsScreen';
 import { RecordDetailModal } from './src/screens/RecordDetailModal';
 import { mockOfficer, initialRecords } from './src/mockData';
 import { ScreeningRecord, OfficerProfile } from './src/types';
+import { getTheme } from './src/theme/theme';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [officer, setOfficer] = useState<OfficerProfile>(mockOfficer);
   const [currentTab, setCurrentTab] = useState<TabType>('dashboard');
   const [scanStep, setScanStep] = useState<1 | 2 | 3>(1);
   const [records, setRecords] = useState<ScreeningRecord[]>(initialRecords);
   const [selectedRecord, setSelectedRecord] = useState<ScreeningRecord | null>(null);
+
+  const theme = getTheme(isDarkMode);
 
   // Authentication
   const handleLoginSuccess = (officerData: any) => {
@@ -81,17 +85,23 @@ export default function App() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+        backgroundColor={theme.headerBg}
+      />
 
-      {/* Top App Bar with Emblem and Security Indicator (Hidden on Step 3 per design or visible) */}
+      {/* Top App Bar with Emblem and Security Indicator */}
       {!(currentTab === 'scan' && scanStep === 3) && (
-        <TopAppBar onPressSecurity={() => setCurrentTab('settings')} />
+        <TopAppBar
+          onPressSecurity={() => setCurrentTab('settings')}
+          isDark={isDarkMode}
+        />
       )}
 
       {/* Active Screen Tab View */}
-      <View style={styles.screenContainer}>
-        {/* Tab 1: Dashboard (Screen 2) */}
+      <View style={[styles.screenContainer, { backgroundColor: theme.background }]}>
+        {/* Tab 1: Dashboard */}
         {currentTab === 'dashboard' && (
           <DashboardScreen
             officer={officer}
@@ -99,22 +109,25 @@ export default function App() {
             onStartVerification={handleStartNewVerification}
             onSelectRecord={(rec) => setSelectedRecord(rec)}
             onNavigateToRecords={() => setCurrentTab('records')}
+            isDark={isDarkMode}
           />
         )}
 
-        {/* Tab 2: Verification Flow (Screens 4, 5, 6) */}
+        {/* Tab 2: Verification Flow (Step 1, 2, 3) */}
         {currentTab === 'scan' && (
           <>
             {scanStep === 1 && (
               <FaceCaptureScreen
                 onBack={() => setCurrentTab('dashboard')}
                 onNext={() => setScanStep(2)}
+                isDark={isDarkMode}
               />
             )}
             {scanStep === 2 && (
               <DocumentUploadScreen
                 onBack={() => setScanStep(1)}
                 onNext={() => setScanStep(3)}
+                isDark={isDarkMode}
               />
             )}
             {scanStep === 3 && (
@@ -123,29 +136,33 @@ export default function App() {
                 onAccept={handleAcceptVerification}
                 onDeny={handleDenyVerification}
                 onNewVerification={handleStartNewVerification}
+                isDark={isDarkMode}
               />
             )}
           </>
         )}
 
-        {/* Tab 3: Records Screen (Screen 7) */}
+        {/* Tab 3: Records Screen */}
         {currentTab === 'records' && (
           <RecordsScreen
             records={records}
             onSelectRecord={(rec) => setSelectedRecord(rec)}
+            isDark={isDarkMode}
           />
         )}
 
-        {/* Tab 4: Settings (Screen 3) */}
+        {/* Tab 4: Settings Screen */}
         {currentTab === 'settings' && (
           <SettingsScreen
             officer={officer}
             onLogout={handleLogout}
+            isDark={isDarkMode}
+            onToggleDarkMode={(val) => setIsDarkMode(val)}
           />
         )}
       </View>
 
-      {/* Persistent Bottom Navigation Bar (Hidden during step 3 result screen per design specs) */}
+      {/* Persistent Bottom Navigation Bar */}
       {!(currentTab === 'scan' && scanStep === 3) && (
         <BottomNavBar
           currentTab={currentTab}
@@ -155,15 +172,17 @@ export default function App() {
             }
             setCurrentTab(tab);
           }}
+          isDark={isDarkMode}
         />
       )}
 
-      {/* Record Inspection Audit Modal */}
+      {/* Record Inspection Modal */}
       <RecordDetailModal
         visible={!!selectedRecord}
         record={selectedRecord}
         onClose={() => setSelectedRecord(null)}
         onUpdateStatus={handleUpdateRecordStatus}
+        isDark={isDarkMode}
       />
     </SafeAreaView>
   );
@@ -172,7 +191,6 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f6f8',
   },
   containerDark: {
     flex: 1,
@@ -180,6 +198,5 @@ const styles = StyleSheet.create({
   },
   screenContainer: {
     flex: 1,
-    backgroundColor: '#f5f6f8',
   },
 });

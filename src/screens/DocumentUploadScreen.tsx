@@ -2,654 +2,492 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
-  Platform,
+  ScrollView,
+  TextInput,
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors, typography, rounded, spacing } from '../theme/theme';
+import { getTheme, typography, rounded, spacing } from '../theme/theme';
 
 interface DocumentUploadScreenProps {
   onBack: () => void;
   onNext: () => void;
+  isDark?: boolean;
 }
 
 export const DocumentUploadScreen: React.FC<DocumentUploadScreenProps> = ({
   onBack,
   onNext,
+  isDark = false,
 }) => {
-  const [visaUploaded, setVisaUploaded] = useState(false);
-  const [nationalIdUploaded, setNationalIdUploaded] = useState(false);
+  const theme = getTheme(isDark);
+  const [visaAttached, setVisaAttached] = useState<boolean>(false);
+  const [nationalIdAttached, setNationalIdAttached] = useState<boolean>(false);
 
-  const handleSimulateUpload = (type: 'visa' | 'nationalId') => {
-    if (type === 'visa') {
-      setVisaUploaded(true);
-      Alert.alert('Visa Document Attached', 'visa-scanned.pdf (1.8 MB) verified and attached.');
-    } else {
-      setNationalIdUploaded(true);
-      Alert.alert('National ID Attached', 'national-id.jpg (2.1 MB) verified and attached.');
-    }
+  const [extractedData, setExtractedData] = useState({
+    fullName: 'Alex Morgan',
+    docNumber: 'P8742031',
+    nationality: 'United States',
+    dob: '12 Mar 1992',
+  });
+
+  const handleAttachVisa = () => {
+    setVisaAttached(true);
+    Alert.alert('Visa Uploaded', 'Tourist Visa (V-90812) attached and scanned.');
+  };
+
+  const handleAttachId = () => {
+    setNationalIdAttached(true);
+    Alert.alert('National ID Uploaded', 'US State ID (ending 4821) verified.');
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Header Section */}
-      <View style={styles.headerSection}>
-        <View style={styles.headerTextGroup}>
-          <Text style={styles.flowStepLabel}>VERIFICATION FLOW · STEP 2 OF 3</Text>
-          <Text style={styles.flowTitle}>Upload Identity Documents</Text>
-          <Text style={styles.flowSubtitle}>
-            Add the required documents to continue your identity verification.
-          </Text>
-        </View>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Back Link */}
+        <TouchableOpacity style={styles.backLink} onPress={onBack}>
+          <MaterialIcons name="arrow-back" size={18} color={theme.textSecondary} />
+          <Text style={[styles.backLinkText, { color: theme.textSecondary }]}>Back to Step 1</Text>
+        </TouchableOpacity>
 
-        {/* Minimalist Stepper */}
-        <View style={styles.stepperBar}>
-          <View style={styles.stepperItem}>
-            <MaterialIcons name="check-circle" size={16} color="#6b7280" />
-            <Text style={styles.stepperItemInactiveText}>Details</Text>
+        {/* Page Title & ID Badge */}
+        <View style={styles.headerSection}>
+          <View style={styles.headerTitleCol}>
+            <Text style={[styles.pageTitle, { color: theme.textPrimary }]}>Document Upload</Text>
+            <Text style={[styles.pageSubtitle, { color: theme.textMuted }]} numberOfLines={1}>
+              Upload and scan government issued credentials.
+            </Text>
           </View>
 
-          <View style={styles.stepperDivider} />
-
-          <View style={styles.stepperItem}>
-            <View style={styles.stepperActiveBadge}>
-              <Text style={styles.stepperActiveBadgeText}>2</Text>
-            </View>
-            <Text style={styles.stepperActiveItemText}>Documents</Text>
-          </View>
-
-          <View style={styles.stepperDivider} />
-
-          <View style={styles.stepperItem}>
-            <View style={styles.stepperInactiveBadge}>
-              <Text style={styles.stepperInactiveBadgeText}>3</Text>
-            </View>
-            <Text style={styles.stepperItemInactiveText}>Review</Text>
+          <View style={[styles.idBadge, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
+            <Text style={[styles.idBadgeLabel, { color: theme.textMuted }]}>ID:</Text>
+            <Text style={[styles.idBadgeValue, { color: theme.textPrimary }]}>VF-20481</Text>
           </View>
         </View>
-      </View>
 
-      {/* Upload Cards Section (Grid) */}
-      <View style={styles.cardsGrid}>
+        {/* Stepper Navigation */}
+        <View style={[styles.stepperContainer, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
+          {/* Step 1 */}
+          <View style={styles.stepItem}>
+            <View style={[styles.stepCircle, { backgroundColor: theme.isDark ? '#143820' : '#e6f4ea', borderColor: theme.badgeOperational }]}>
+              <MaterialIcons name="check" size={14} color={theme.badgeOperational} />
+            </View>
+            <Text style={[styles.stepLabel, { color: theme.textPrimary }]} numberOfLines={1}>
+              Live Capture
+            </Text>
+          </View>
+
+          <View style={[styles.stepLine, { backgroundColor: theme.border }]} />
+
+          {/* Step 2 (Active) */}
+          <View style={styles.stepItem}>
+            <View style={[styles.stepCircle, styles.stepCircleActive]}>
+              <Text style={styles.stepNumActive}>2</Text>
+            </View>
+            <Text style={[styles.stepLabel, { color: theme.textPrimary, fontWeight: '700' }]} numberOfLines={1}>
+              Upload
+            </Text>
+          </View>
+
+          <View style={[styles.stepLine, { backgroundColor: theme.border }]} />
+
+          {/* Step 3 */}
+          <View style={styles.stepItem}>
+            <View style={[styles.stepCircle, { backgroundColor: theme.isDark ? theme.surfaceContainerHigh : '#f3f4f6', borderColor: theme.border }]}>
+              <Text style={[styles.stepNum, { color: theme.textMuted }]}>3</Text>
+            </View>
+            <Text style={[styles.stepLabel, { color: theme.textMuted }]} numberOfLines={1}>
+              Result
+            </Text>
+          </View>
+        </View>
+
         {/* Passport Card (Uploaded) */}
-        <View style={styles.uploadCard}>
-          <View style={styles.uploadCardHeader}>
-            <View style={styles.uploadCardTitleGroup}>
-              <MaterialIcons name="menu-book" size={20} color="#111827" />
-              <View>
-                <Text style={styles.uploadDocTitle}>Passport Image</Text>
-                <Text style={styles.requiredTag}>REQUIRED</Text>
-              </View>
+        <View style={[styles.docCard, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
+          <View style={styles.docHeaderRow}>
+            <View style={{ flex: 1, marginRight: 6 }}>
+              <Text style={[styles.docCardTitle, { color: theme.textPrimary }]}>Passport Document</Text>
+              <Text style={[styles.docCardSubtitle, { color: theme.textMuted }]}>Primary travel identifier</Text>
             </View>
-            <View style={styles.uploadedBadge}>
-              <Text style={styles.uploadedBadgeText}>UPLOADED</Text>
+
+            <View style={[styles.verifiedPill, { backgroundColor: theme.isDark ? '#183a24' : '#e6f4ea', borderColor: theme.isDark ? '#2d5f3f' : '#bbf7d0' }]}>
+              <MaterialIcons name="check-circle" size={13} color={theme.badgeOperational} />
+              <Text style={[styles.verifiedPillText, { color: theme.isDark ? '#4cd964' : '#137333' }]}>UPLOADED</Text>
             </View>
           </View>
 
-          <View style={styles.filePreviewBox}>
-            <View style={styles.filePreviewLeft}>
-              <MaterialIcons name="description" size={20} color="#6b7280" />
+          <View style={[styles.fileAttachmentBox, { backgroundColor: theme.isDark ? theme.surfaceContainerLow : '#f8fafc', borderColor: theme.border }]}>
+            <View style={styles.fileLeft}>
+              <MaterialIcons name="menu-book" size={24} color={theme.textPrimary} />
               <View>
-                <Text style={styles.fileNameText}>passport-front.jpg</Text>
-                <Text style={styles.fileMetaText}>2.4 MB · Verified</Text>
+                <Text style={[styles.fileName, { color: theme.textPrimary }]}>passport-front.jpg</Text>
+                <Text style={[styles.fileMeta, { color: theme.textMuted }]}>2.4 MB · High Resolution OCR</Text>
               </View>
             </View>
-            <MaterialIcons name="check-circle" size={18} color="#16a34a" />
-          </View>
-
-          <View style={styles.cardActionsRow}>
-            <TouchableOpacity
-              style={styles.actionOutlineBtn}
-              onPress={() => Alert.alert('Camera Scan', 'Optical Passport MRZ scanner active.')}
-            >
-              <MaterialIcons name="photo-camera" size={16} color="#374151" />
-              <Text style={styles.actionBtnText}>Scan</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionGreyBtn}
-              onPress={() => Alert.alert('Replace', 'Select replacement file.')}
-            >
-              <Text style={styles.actionBtnText}>Replace</Text>
+            <TouchableOpacity onPress={() => Alert.alert('Preview', 'Displaying passport-front.jpg')}>
+              <MaterialIcons name="visibility" size={20} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Visa Card */}
-        <View style={[styles.uploadCard, !visaUploaded && styles.dashedCard]}>
-          <View style={styles.uploadCardHeader}>
-            <View style={styles.uploadCardTitleGroup}>
-              <MaterialIcons name="airplane-ticket" size={20} color="#6b7280" />
-              <View>
-                <Text style={styles.uploadDocTitle}>Visa Image</Text>
-                <Text style={styles.requiredTag}>REQUIRED</Text>
+        {/* Visa Document (Drop Zone) */}
+        <View style={[styles.docCard, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
+          <View style={styles.docHeaderRow}>
+            <View style={{ flex: 1, marginRight: 6 }}>
+              <Text style={[styles.docCardTitle, { color: theme.textPrimary }]}>Visa (Optional / Secondary)</Text>
+              <Text style={[styles.docCardSubtitle, { color: theme.textMuted }]}>Attach entry permit if required</Text>
+            </View>
+            {visaAttached ? (
+              <View style={[styles.verifiedPill, { backgroundColor: theme.isDark ? '#183a24' : '#e6f4ea', borderColor: theme.isDark ? '#2d5f3f' : '#bbf7d0' }]}>
+                <MaterialIcons name="check-circle" size={13} color={theme.badgeOperational} />
+                <Text style={[styles.verifiedPillText, { color: theme.isDark ? '#4cd964' : '#137333' }]}>ATTACHED</Text>
               </View>
-            </View>
-            <View style={visaUploaded ? styles.uploadedBadge : styles.pendingBadge}>
-              <Text style={visaUploaded ? styles.uploadedBadgeText : styles.pendingBadgeText}>
-                {visaUploaded ? 'UPLOADED' : 'PENDING'}
-              </Text>
-            </View>
+            ) : (
+              <View style={[styles.pendingPill, { backgroundColor: theme.isDark ? '#4a3615' : '#fefce8', borderColor: theme.isDark ? '#7a5924' : '#fef08a' }]}>
+                <Text style={[styles.pendingPillText, { color: theme.isDark ? '#ffcc00' : '#854d0e' }]}>PENDING</Text>
+              </View>
+            )}
           </View>
 
-          {visaUploaded ? (
-            <View style={styles.filePreviewBox}>
-              <View style={styles.filePreviewLeft}>
-                <MaterialIcons name="description" size={20} color="#6b7280" />
-                <View>
-                  <Text style={styles.fileNameText}>visa-scanned.pdf</Text>
-                  <Text style={styles.fileMetaText}>1.8 MB · Attached</Text>
-                </View>
-              </View>
-              <MaterialIcons name="check-circle" size={18} color="#16a34a" />
+          <TouchableOpacity
+            style={[
+              styles.dropZone,
+              {
+                borderColor: theme.borderDark,
+                backgroundColor: theme.isDark ? theme.surfaceContainerLow : '#fafafa',
+              },
+            ]}
+            onPress={handleAttachVisa}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons
+              name={visaAttached ? 'check-circle' : 'add-photo-alternate'}
+              size={28}
+              color={visaAttached ? theme.badgeOperational : theme.textMuted}
+            />
+            <Text style={[styles.dropZoneText, { color: theme.textPrimary }]}>
+              {visaAttached ? 'Visa attached (tourist-visa.pdf)' : 'Tap to scan or attach Visa'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* National ID Document */}
+        <View style={[styles.docCard, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
+          <View style={styles.docHeaderRow}>
+            <View style={{ flex: 1, marginRight: 6 }}>
+              <Text style={[styles.docCardTitle, { color: theme.textPrimary }]}>National Identity Card</Text>
+              <Text style={[styles.docCardSubtitle, { color: theme.textMuted }]}>Secondary biometric proof</Text>
             </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.dropZone}
-              onPress={() => handleSimulateUpload('visa')}
-              activeOpacity={0.7}
-            >
-              <MaterialIcons name="cloud-upload" size={24} color="#9ca3af" />
-              <Text style={styles.dropZoneTitle}>Drop visa image here</Text>
-              <Text style={styles.dropZoneSub}>JPG, PNG or PDF · Max 10 MB</Text>
-            </TouchableOpacity>
-          )}
+            {nationalIdAttached ? (
+              <View style={[styles.verifiedPill, { backgroundColor: theme.isDark ? '#183a24' : '#e6f4ea', borderColor: theme.isDark ? '#2d5f3f' : '#bbf7d0' }]}>
+                <MaterialIcons name="check-circle" size={13} color={theme.badgeOperational} />
+                <Text style={[styles.verifiedPillText, { color: theme.isDark ? '#4cd964' : '#137333' }]}>ATTACHED</Text>
+              </View>
+            ) : (
+              <View style={[styles.pendingPill, { backgroundColor: theme.isDark ? '#4a3615' : '#fefce8', borderColor: theme.isDark ? '#7a5924' : '#fef08a' }]}>
+                <Text style={[styles.pendingPillText, { color: theme.isDark ? '#ffcc00' : '#854d0e' }]}>PENDING</Text>
+              </View>
+            )}
+          </View>
 
-          <View style={styles.cardActionsRow}>
-            <TouchableOpacity
-              style={styles.actionOutlineBtn}
-              onPress={() => handleSimulateUpload('visa')}
-            >
-              <MaterialIcons name="photo-camera" size={16} color="#374151" />
-              <Text style={styles.actionBtnText}>Camera</Text>
-            </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.dropZone,
+              {
+                borderColor: theme.borderDark,
+                backgroundColor: theme.isDark ? theme.surfaceContainerLow : '#fafafa',
+              },
+            ]}
+            onPress={handleAttachId}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons
+              name={nationalIdAttached ? 'check-circle' : 'badge'}
+              size={28}
+              color={nationalIdAttached ? theme.badgeOperational : theme.textMuted}
+            />
+            <Text style={[styles.dropZoneText, { color: theme.textPrimary }]}>
+              {nationalIdAttached ? 'National ID attached (state-id.jpg)' : 'Tap to scan National ID'}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-            <TouchableOpacity
-              style={styles.actionGreyBtn}
-              onPress={() => handleSimulateUpload('visa')}
-            >
-              <Text style={styles.actionBtnText}>Browse</Text>
-            </TouchableOpacity>
+        {/* Extracted Fields Form */}
+        <View style={[styles.docCard, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
+          <Text style={[styles.docCardTitle, { color: theme.textPrimary }]}>Extracted Passport Fields (AI OCR)</Text>
+
+          <View style={styles.formGrid}>
+            <View style={styles.formCol}>
+              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>FULL NAME</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
+                value={extractedData.fullName}
+                onChangeText={(val) => setExtractedData((p) => ({ ...p, fullName: val }))}
+              />
+            </View>
+
+            <View style={styles.formCol}>
+              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>DOCUMENT NUMBER</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
+                value={extractedData.docNumber}
+                onChangeText={(val) => setExtractedData((p) => ({ ...p, docNumber: val }))}
+              />
+            </View>
+
+            <View style={styles.formCol}>
+              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>NATIONALITY</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
+                value={extractedData.nationality}
+                onChangeText={(val) => setExtractedData((p) => ({ ...p, nationality: val }))}
+              />
+            </View>
+
+            <View style={styles.formCol}>
+              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>DATE OF BIRTH</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.inputText }]}
+                value={extractedData.dob}
+                onChangeText={(val) => setExtractedData((p) => ({ ...p, dob: val }))}
+              />
+            </View>
           </View>
         </View>
 
-        {/* National ID Card */}
-        <View style={[styles.uploadCard, !nationalIdUploaded && styles.dashedCard]}>
-          <View style={styles.uploadCardHeader}>
-            <View style={styles.uploadCardTitleGroup}>
-              <MaterialIcons name="badge" size={20} color="#6b7280" />
-              <View>
-                <Text style={styles.uploadDocTitle}>National ID Image</Text>
-                <Text style={styles.requiredTag}>REQUIRED</Text>
-              </View>
-            </View>
-            <View style={nationalIdUploaded ? styles.uploadedBadge : styles.pendingBadge}>
-              <Text style={nationalIdUploaded ? styles.uploadedBadgeText : styles.pendingBadgeText}>
-                {nationalIdUploaded ? 'UPLOADED' : 'PENDING'}
-              </Text>
-            </View>
-          </View>
-
-          {nationalIdUploaded ? (
-            <View style={styles.filePreviewBox}>
-              <View style={styles.filePreviewLeft}>
-                <MaterialIcons name="description" size={20} color="#6b7280" />
-                <View>
-                  <Text style={styles.fileNameText}>national-id.jpg</Text>
-                  <Text style={styles.fileMetaText}>2.1 MB · Attached</Text>
-                </View>
-              </View>
-              <MaterialIcons name="check-circle" size={18} color="#16a34a" />
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.dropZone}
-              onPress={() => handleSimulateUpload('nationalId')}
-              activeOpacity={0.7}
-            >
-              <MaterialIcons name="cloud-upload" size={24} color="#9ca3af" />
-              <Text style={styles.dropZoneTitle}>Drop national ID here</Text>
-              <Text style={styles.dropZoneSub}>JPG, PNG or PDF · Max 10 MB</Text>
-            </TouchableOpacity>
-          )}
-
-          <View style={styles.cardActionsRow}>
-            <TouchableOpacity
-              style={styles.actionOutlineBtn}
-              onPress={() => handleSimulateUpload('nationalId')}
-            >
-              <MaterialIcons name="photo-camera" size={16} color="#374151" />
-              <Text style={styles.actionBtnText}>Camera</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionGreyBtn}
-              onPress={() => handleSimulateUpload('nationalId')}
-            >
-              <Text style={styles.actionBtnText}>Browse</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-
-      {/* Extracted Fields Section */}
-      <View style={styles.extractedCard}>
-        <View style={styles.extractedHeader}>
-          <Text style={styles.extractedTitle}>Extracted Fields</Text>
-          <Text style={styles.extractedSubtitle}>
-            Review the information extracted from your documents.
+        {/* Next Button */}
+        <TouchableOpacity
+          style={[styles.nextButton, { backgroundColor: theme.isDark ? '#ffffff' : '#0f172a' }]}
+          onPress={onNext}
+          activeOpacity={0.85}
+        >
+          <Text style={[styles.nextButtonText, { color: theme.isDark ? '#000000' : '#ffffff' }]}>
+            Run AI Verification Check
           </Text>
-        </View>
-
-        <View style={styles.extractedFieldsGrid}>
-          {/* Full Name */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>FULL NAME</Text>
-            <View style={styles.lockedInputWrapper}>
-              <TextInput
-                style={styles.fieldInput}
-                value="Alex Morgan"
-                editable={false}
-              />
-              <MaterialIcons
-                name="lock"
-                size={16}
-                color="#9ca3af"
-                style={styles.lockedIcon}
-              />
-            </View>
-          </View>
-
-          {/* Document Number */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>DOCUMENT NUMBER</Text>
-            <View style={styles.lockedInputWrapper}>
-              <TextInput
-                style={styles.fieldInput}
-                value="P8742031"
-                editable={false}
-              />
-              <MaterialIcons
-                name="lock"
-                size={16}
-                color="#9ca3af"
-                style={styles.lockedIcon}
-              />
-            </View>
-          </View>
-
-          {/* Nationality */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>NATIONALITY</Text>
-            <TextInput
-              style={styles.fieldInput}
-              value="United States"
-              editable={false}
-            />
-          </View>
-
-          {/* Date of Birth */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>DATE OF BIRTH</Text>
-            <TextInput
-              style={styles.fieldInput}
-              value="12 Mar 1992"
-              editable={false}
-            />
-          </View>
-        </View>
-      </View>
-
-      {/* Bottom Page-Level Actions */}
-      <View style={styles.bottomActions}>
-        <TouchableOpacity style={styles.bottomBackBtn} onPress={onBack}>
-          <MaterialIcons name="arrow-back" size={16} color="#374151" />
-          <Text style={styles.bottomBackBtnText}>Back</Text>
+          <MaterialIcons name="arrow-forward" size={18} color={theme.isDark ? '#000000' : '#ffffff'} />
         </TouchableOpacity>
-
-        <TouchableOpacity style={styles.bottomNextBtn} onPress={onNext}>
-          <Text style={styles.bottomNextBtnText}>Next</Text>
-          <MaterialIcons name="arrow-forward" size={16} color="#ffffff" />
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f6f8',
   },
   scrollContent: {
     paddingHorizontal: spacing.marginMobile,
-    paddingVertical: 20,
-    paddingBottom: 100,
+    paddingVertical: 14,
+    paddingBottom: 90,
     maxWidth: spacing.containerMaxWidth,
     alignSelf: 'center',
     width: '100%',
-    gap: 20,
+    gap: 14,
+  },
+  backLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+  },
+  backLinkText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
   headerSection: {
-    gap: 12,
-  },
-  headerTextGroup: {
-    gap: 4,
-  },
-  flowStepLabel: {
-    fontSize: 12,
-    fontFamily: typography.fontFamily.mono,
-    color: '#6b7280',
-    letterSpacing: 0.8,
-  },
-  flowTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  flowSubtitle: {
-    fontSize: 14,
-    color: '#4b5563',
-  },
-  stepperBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#e5e7eb',
-    marginTop: 4,
-  },
-  stepperItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  stepperItemInactiveText: {
-    fontSize: 13,
-    color: '#6b7280',
-  },
-  stepperDivider: {
-    width: 16,
-    height: 1,
-    backgroundColor: '#e5e7eb',
-  },
-  stepperActiveBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#111827',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  stepperActiveBadgeText: {
-    color: '#ffffff',
-    fontSize: 10,
-    fontFamily: typography.fontFamily.mono,
-    fontWeight: '700',
-  },
-  stepperActiveItemText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  stepperInactiveBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  stepperInactiveBadgeText: {
-    color: '#6b7280',
-    fontSize: 10,
-    fontFamily: typography.fontFamily.mono,
-  },
-  cardsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 14,
-  },
-  uploadCard: {
-    flex: 1,
-    minWidth: 280,
-    backgroundColor: '#ffffff',
-    borderRadius: rounded.xl,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    padding: 16,
-    gap: 14,
-    justifyContent: 'space-between',
-  },
-  dashedCard: {
-    borderStyle: 'dashed',
-  },
-  uploadCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-  },
-  uploadCardTitleGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 8,
   },
-  uploadDocTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  requiredTag: {
-    fontSize: 10,
-    fontFamily: typography.fontFamily.mono,
-    color: '#6b7280',
-    marginTop: 1,
-  },
-  uploadedBadge: {
-    backgroundColor: '#f0fdf4',
-    borderWidth: 1,
-    borderColor: '#bbf7d0',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: rounded.default,
-  },
-  uploadedBadgeText: {
-    color: '#15803d',
-    fontSize: 10,
-    fontFamily: typography.fontFamily.mono,
-    fontWeight: '700',
-  },
-  pendingBadge: {
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: rounded.default,
-  },
-  pendingBadgeText: {
-    color: '#4b5563',
-    fontSize: 10,
-    fontFamily: typography.fontFamily.mono,
-    fontWeight: '700',
-  },
-  filePreviewBox: {
-    backgroundColor: '#f9fafb',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: rounded.lg,
-    padding: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  filePreviewLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  fileNameText: {
-    fontSize: 13,
-    color: '#111827',
-    fontWeight: '500',
-  },
-  fileMetaText: {
-    fontSize: 10,
-    fontFamily: typography.fontFamily.mono,
-    color: '#6b7280',
-    marginTop: 1,
-  },
-  dropZone: {
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: '#e5e7eb',
-    borderRadius: rounded.lg,
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    backgroundColor: '#ffffff',
-  },
-  dropZoneTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  dropZoneSub: {
-    fontSize: 10,
-    fontFamily: typography.fontFamily.mono,
-    color: '#9ca3af',
-  },
-  cardActionsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 'auto',
-  },
-  actionOutlineBtn: {
+  headerTitleCol: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: rounded.lg,
-    paddingVertical: 8,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-  },
-  actionGreyBtn: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
-    borderRadius: rounded.lg,
-    paddingVertical: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionBtnText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#374151',
-  },
-  extractedCard: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: rounded.xl,
-    padding: 18,
-    gap: 14,
-  },
-  extractedHeader: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    paddingBottom: 10,
     gap: 2,
   },
-  extractedTitle: {
+  pageTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: '700',
   },
-  extractedSubtitle: {
-    fontSize: 13,
-    color: '#4b5563',
+  pageSubtitle: {
+    fontSize: 12,
   },
-  extractedFieldsGrid: {
+  idBadge: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 14,
-  },
-  fieldGroup: {
-    flex: 1,
-    minWidth: 220,
+    alignItems: 'center',
     gap: 4,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: rounded.default,
+    flexShrink: 0,
   },
-  fieldLabel: {
+  idBadgeLabel: {
+    fontSize: 10,
+    fontFamily: typography.fontFamily.mono,
+  },
+  idBadgeValue: {
     fontSize: 11,
     fontFamily: typography.fontFamily.mono,
-    color: '#6b7280',
-    letterSpacing: 0.5,
+    fontWeight: '700',
   },
-  lockedInputWrapper: {
-    position: 'relative',
-    justifyContent: 'center',
-  },
-  fieldInput: {
-    backgroundColor: '#f9fafb',
+  stepperContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#d1d5db',
     borderRadius: rounded.lg,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    fontSize: 14,
-    color: '#111827',
+    padding: 10,
+    gap: 4,
   },
-  lockedIcon: {
-    position: 'absolute',
-    right: 10,
+  stepItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 1,
   },
-  bottomActions: {
+  stepCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  stepCircleActive: {
+    backgroundColor: '#0f172a',
+    borderColor: '#0f172a',
+  },
+  stepNum: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  stepNumActive: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  stepLabel: {
+    fontSize: 11,
+    fontFamily: typography.fontFamily.mono,
+  },
+  stepLine: {
+    flex: 1,
+    height: 1,
+    minWidth: 10,
+    marginHorizontal: 4,
+  },
+  docCard: {
+    borderRadius: rounded.xl,
+    borderWidth: 1,
+    padding: 14,
+    gap: 12,
+  },
+  docHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-    paddingTop: 16,
   },
-  bottomBackBtn: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: rounded.lg,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  bottomBackBtnText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#374151',
-  },
-  bottomNextBtn: {
-    backgroundColor: '#111827',
-    borderRadius: rounded.lg,
-    paddingHorizontal: 28,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  bottomNextBtnText: {
-    fontSize: 13,
+  docCardTitle: {
+    fontSize: 16,
     fontWeight: '700',
-    color: '#ffffff',
+  },
+  docCardSubtitle: {
+    fontSize: 12,
+  },
+  verifiedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: rounded.default,
+    borderWidth: 1,
+    gap: 4,
+    flexShrink: 0,
+  },
+  verifiedPillText: {
+    fontSize: 10,
+    fontFamily: typography.fontFamily.mono,
+    fontWeight: '700',
+  },
+  pendingPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: rounded.default,
+    borderWidth: 1,
+    flexShrink: 0,
+  },
+  pendingPillText: {
+    fontSize: 10,
+    fontFamily: typography.fontFamily.mono,
+    fontWeight: '700',
+  },
+  fileAttachmentBox: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: rounded.lg,
+    borderWidth: 1,
+  },
+  fileLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  fileName: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  fileMeta: {
+    fontSize: 11,
+  },
+  dropZone: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderRadius: rounded.lg,
+    padding: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dropZoneText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  formGrid: {
+    gap: 10,
+  },
+  formCol: {
+    gap: 4,
+  },
+  inputLabel: {
+    fontSize: 10,
+    fontFamily: typography.fontFamily.mono,
+    letterSpacing: 0.5,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: rounded.md,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    fontSize: 14,
+  },
+  nextButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 13,
+    borderRadius: rounded.lg,
+    gap: 8,
+  },
+  nextButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

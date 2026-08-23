@@ -1,19 +1,23 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, ViewStyle } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { typography } from '../theme/theme';
+import { getTheme, typography } from '../theme/theme';
 
 export type TabType = 'dashboard' | 'scan' | 'records' | 'settings';
 
 interface BottomNavBarProps {
   currentTab: TabType;
   onSelectTab: (tab: TabType) => void;
+  isDark?: boolean;
 }
 
 export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   currentTab,
   onSelectTab,
+  isDark = false,
 }) => {
+  const theme = getTheme(isDark);
+
   const tabs = [
     {
       id: 'dashboard' as TabType,
@@ -38,7 +42,15 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   ];
 
   return (
-    <View style={styles.navContainer as ViewStyle}>
+    <View
+      style={[
+        styles.navContainer as ViewStyle,
+        {
+          backgroundColor: theme.navBg,
+          borderTopColor: theme.navBorder,
+        },
+      ]}
+    >
       {tabs.map((tab) => {
         const isActive = currentTab === tab.id;
         return (
@@ -48,17 +60,27 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
             onPress={() => onSelectTab(tab.id)}
             activeOpacity={0.7}
           >
-            <View style={[styles.iconWrapper, isActive && styles.activeIconWrapper]}>
+            <View
+              style={[
+                styles.iconWrapper,
+                isActive && {
+                  backgroundColor: isDark ? theme.surfaceContainerHighest : '#f3f4f6',
+                },
+              ]}
+            >
               <MaterialIcons
                 name={tab.icon as any}
-                size={24}
-                color={isActive ? '#111827' : '#6b7280'}
+                size={22}
+                color={isActive ? theme.textPrimary : theme.textMuted}
               />
             </View>
             <Text
               style={[
                 styles.tabLabel,
-                isActive ? styles.activeTabLabel : styles.inactiveTabLabel,
+                {
+                  color: isActive ? theme.textPrimary : theme.textMuted,
+                  fontWeight: isActive ? '700' : '500',
+                },
               ]}
             >
               {tab.label}
@@ -72,14 +94,12 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
 
 const styles = StyleSheet.create({
   navContainer: {
-    backgroundColor: '#ffffff',
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 10,
+    paddingVertical: 6,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 8,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
     ...Platform.select({
       web: {
         position: 'sticky' as any,
@@ -97,26 +117,15 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   activeTabItem: {
-    transform: [{ scale: 1.03 }],
+    transform: [{ scale: 1.02 }],
   },
   iconWrapper: {
     padding: 4,
     borderRadius: 20,
     marginBottom: 2,
   },
-  activeIconWrapper: {
-    backgroundColor: '#f3f4f6',
-  },
   tabLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: typography.fontFamily.bold,
-  },
-  activeTabLabel: {
-    color: '#111827',
-    fontWeight: '700',
-  },
-  inactiveTabLabel: {
-    color: '#6b7280',
-    fontWeight: '500',
   },
 });

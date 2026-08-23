@@ -1,16 +1,26 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ImageStyle, ViewStyle, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors, typography, spacing } from '../theme/theme';
+import { getTheme, typography, spacing } from '../theme/theme';
 
 interface TopAppBarProps {
   onPressSecurity?: () => void;
-  dark?: boolean;
+  isDark?: boolean;
 }
 
-export const TopAppBar: React.FC<TopAppBarProps> = ({ onPressSecurity, dark = false }) => {
+export const TopAppBar: React.FC<TopAppBarProps> = ({ onPressSecurity, isDark = false }) => {
+  const theme = getTheme(isDark);
+
   return (
-    <View style={[styles.header as ViewStyle, dark ? styles.headerDark : styles.headerLight]}>
+    <View
+      style={[
+        styles.header as ViewStyle,
+        {
+          backgroundColor: theme.headerBg,
+          borderBottomColor: theme.headerBorder,
+        },
+      ]}
+    >
       <View style={styles.leftSection}>
         <Image
           source={{
@@ -20,22 +30,26 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({ onPressSecurity, dark = fa
           resizeMode="contain"
         />
         <Text
-          style={[styles.headerTitle, dark ? styles.titleDark : styles.titleLight]}
+          style={[styles.headerTitle, { color: theme.textPrimary }]}
           numberOfLines={1}
+          ellipsizeMode="tail"
         >
-          Ministry of Home Affairs | SSB — AI Document Screening
+          Ministry of Home Affairs | SSB
         </Text>
       </View>
 
       <TouchableOpacity
-        style={[styles.securityButton, dark && styles.securityButtonDark]}
+        style={[
+          styles.securityButton,
+          { backgroundColor: isDark ? theme.surfaceContainerHigh : '#f3f4f6' },
+        ]}
         onPress={onPressSecurity}
         accessibilityLabel="Security settings"
       >
         <MaterialIcons
           name="security"
-          size={22}
-          color={dark ? '#ffffff' : '#4b5563'}
+          size={20}
+          color={isDark ? '#ffffff' : '#4b5563'}
         />
       </TouchableOpacity>
     </View>
@@ -48,7 +62,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.marginMobile,
-    height: 60,
+    height: 56,
     borderBottomWidth: 1,
     zIndex: 40,
     ...Platform.select({
@@ -58,43 +72,29 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  headerLight: {
-    backgroundColor: '#ffffff',
-    borderBottomColor: '#e5e7eb',
-  },
-  headerDark: {
-    backgroundColor: colors.darkSurfaceDim,
-    borderBottomColor: colors.darkSurfaceContainerHigh,
-  },
   leftSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     flex: 1,
-    marginRight: 10,
+    marginRight: 8,
+    overflow: 'hidden',
   },
   emblem: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
+    flexShrink: 0,
   },
   headerTitle: {
     fontSize: 12,
     fontWeight: '700',
     fontFamily: typography.fontFamily.mono,
-    letterSpacing: 0.8,
-    flex: 1,
-  },
-  titleLight: {
-    color: '#111827',
-  },
-  titleDark: {
-    color: '#ffffff',
+    letterSpacing: 0.5,
+    flexShrink: 1,
   },
   securityButton: {
-    padding: 8,
+    padding: 7,
     borderRadius: 20,
-  },
-  securityButtonDark: {
-    backgroundColor: colors.darkSurfaceContainer,
+    flexShrink: 0,
   },
 });

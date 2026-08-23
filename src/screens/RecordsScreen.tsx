@@ -10,21 +10,23 @@ import {
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors, typography, rounded, spacing } from '../theme/theme';
+import { getTheme, typography, rounded, spacing } from '../theme/theme';
 import { ScreeningRecord } from '../types';
 
 interface RecordsScreenProps {
   records: ScreeningRecord[];
   onSelectRecord: (record: ScreeningRecord) => void;
+  isDark?: boolean;
 }
 
 export const RecordsScreen: React.FC<RecordsScreenProps> = ({
   records,
   onSelectRecord,
+  isDark = false,
 }) => {
+  const theme = getTheme(isDark);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Default records from design template if none added
   const defaultDesignRecords = [
     {
       id: 'VER-8924-XQ',
@@ -126,7 +128,6 @@ export const RecordsScreen: React.FC<RecordsScreenProps> = ({
     },
   ];
 
-  // Combine user records with design records
   const allDisplayRecords = [
     ...records.map((r) => ({
       ...r,
@@ -148,26 +149,33 @@ export const RecordsScreen: React.FC<RecordsScreenProps> = ({
   });
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header & Search Section */}
+        {/* Header & Search */}
         <View style={styles.headerSection}>
-          <Text style={styles.pageTitle}>Verification Records</Text>
+          <Text style={[styles.pageTitle, { color: theme.textPrimary }]}>Verification Records</Text>
 
           <View style={styles.searchBox}>
             <MaterialIcons
               name="search"
-              size={20}
-              color="#6b7280"
+              size={18}
+              color={theme.textMuted}
               style={styles.searchIcon}
             />
             <TextInput
-              style={styles.searchInput}
+              style={[
+                styles.searchInput,
+                {
+                  backgroundColor: theme.inputBg,
+                  borderColor: theme.inputBorder,
+                  color: theme.inputText,
+                },
+              ]}
               placeholder="Search by Name, ID, or Date..."
-              placeholderTextColor="#6b7280"
+              placeholderTextColor={theme.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
@@ -177,12 +185,12 @@ export const RecordsScreen: React.FC<RecordsScreenProps> = ({
                 Alert.alert('Filters', 'Filter records by status, checkpoint, or date range.')
               }
             >
-              <MaterialIcons name="filter-list" size={20} color="#6b7280" />
+              <MaterialIcons name="filter-list" size={18} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Records List (Bento/Card Style) */}
+        {/* Records List */}
         <View style={styles.recordsList}>
           {filteredRecords.map((item) => {
             const isMismatch = item.status === 'MISMATCH' || item.status === 'HIGH_RISK';
@@ -193,27 +201,38 @@ export const RecordsScreen: React.FC<RecordsScreenProps> = ({
                 key={item.id}
                 style={[
                   styles.recordCard,
-                  isMismatch && styles.recordCardMismatch,
+                  {
+                    backgroundColor: theme.surfaceCard,
+                    borderColor: isMismatch ? theme.errorBorder : theme.border,
+                  },
                 ]}
                 onPress={() => onSelectRecord(item as ScreeningRecord)}
-                activeOpacity={0.7}
+                activeOpacity={0.75}
               >
-                {isMismatch && <View style={styles.mismatchTint} />}
+                {isMismatch && (
+                  <View
+                    style={[
+                      styles.mismatchTint,
+                      { backgroundColor: theme.isDark ? 'rgba(61,24,24,0.4)' : 'rgba(254, 242, 242, 0.6)' },
+                    ]}
+                  />
+                )}
 
                 <View style={styles.recordHeader}>
-                  <View>
+                  <View style={{ flex: 1, marginRight: 6 }}>
                     <Text
                       style={[
                         styles.recordName,
-                        isMismatch && styles.recordNameMismatch,
+                        { color: isMismatch ? theme.errorText : theme.textPrimary },
                       ]}
+                      numberOfLines={1}
                     >
                       {item.name}
                     </Text>
                     <Text
                       style={[
                         styles.recordId,
-                        isMismatch && styles.recordIdMismatch,
+                        { color: isMismatch ? theme.errorText : theme.textMuted },
                       ]}
                     >
                       ID: {item.id}
@@ -222,46 +241,46 @@ export const RecordsScreen: React.FC<RecordsScreenProps> = ({
 
                   {/* Status Badge */}
                   {isMismatch ? (
-                    <View style={styles.badgeMismatch}>
-                      <MaterialIcons name="warning" size={14} color="#991b1b" />
-                      <Text style={styles.badgeMismatchText}>MISMATCH</Text>
+                    <View style={[styles.badgeMismatch, { backgroundColor: theme.errorBg, borderColor: theme.errorBorder }]}>
+                      <MaterialIcons name="warning" size={12} color={theme.errorText} />
+                      <Text style={[styles.badgeMismatchText, { color: theme.errorText }]}>MISMATCH</Text>
                     </View>
                   ) : isReview ? (
-                    <View style={styles.badgeReview}>
-                      <MaterialIcons name="pending" size={14} color="#854d0e" />
-                      <Text style={styles.badgeReviewText}>NEEDS REVIEW</Text>
+                    <View style={[styles.badgeReview, { backgroundColor: theme.warningBg, borderColor: theme.warningBorder }]}>
+                      <MaterialIcons name="pending" size={12} color={theme.warningText} />
+                      <Text style={[styles.badgeReviewText, { color: theme.warningText }]}>NEEDS REVIEW</Text>
                     </View>
                   ) : (
-                    <View style={styles.badgeVerified}>
-                      <MaterialIcons name="check-circle" size={14} color="#ffffff" />
-                      <Text style={styles.badgeVerifiedText}>MATCH VERIFIED</Text>
+                    <View style={[styles.badgeVerified, { backgroundColor: theme.successBg, borderColor: theme.successBorder }]}>
+                      <MaterialIcons name="check-circle" size={12} color={theme.successText} />
+                      <Text style={[styles.badgeVerifiedText, { color: theme.successText }]}>MATCH VERIFIED</Text>
                     </View>
                   )}
                 </View>
 
                 {/* Footer Row */}
-                <View style={styles.recordFooter}>
+                <View style={[styles.recordFooter, { borderTopColor: theme.borderLight }]}>
                   <View style={styles.footerItem}>
-                    <MaterialIcons name="calendar-today" size={16} color="#4b5563" />
-                    <Text style={styles.footerItemText}>{item.date || '24 Oct 2023'}</Text>
+                    <MaterialIcons name="calendar-today" size={13} color={theme.textMuted} />
+                    <Text style={[styles.footerItemText, { color: theme.textMuted }]}>{item.date || '24 Oct 2023'}</Text>
                   </View>
 
                   <View style={styles.footerItem}>
-                    <MaterialIcons name="schedule" size={16} color="#4b5563" />
-                    <Text style={styles.footerItemText}>{item.timestamp}</Text>
+                    <MaterialIcons name="schedule" size={13} color={theme.textMuted} />
+                    <Text style={[styles.footerItemText, { color: theme.textMuted }]}>{item.timestamp}</Text>
                   </View>
 
                   {item.tag ? (
                     <View style={[styles.footerItem, styles.footerItemRight]}>
                       <MaterialIcons
                         name={item.tagIcon as any}
-                        size={16}
-                        color={isMismatch ? '#dc2626' : '#4b5563'}
+                        size={13}
+                        color={isMismatch ? theme.errorText : theme.textMuted}
                       />
                       <Text
                         style={[
                           styles.footerItemText,
-                          isMismatch && { color: '#dc2626' },
+                          { color: isMismatch ? theme.errorText : theme.textMuted },
                         ]}
                       >
                         {item.tag}
@@ -274,10 +293,10 @@ export const RecordsScreen: React.FC<RecordsScreenProps> = ({
           })}
         </View>
 
-        {/* Loading Indicator for older records */}
+        {/* Loading Indicator */}
         <View style={styles.loadingFooter}>
-          <ActivityIndicator size="small" color="#6b7280" style={{ marginRight: 8 }} />
-          <Text style={styles.loadingText}>Loading older records...</Text>
+          <ActivityIndicator size="small" color={theme.textMuted} style={{ marginRight: 8 }} />
+          <Text style={[styles.loadingText, { color: theme.textMuted }]}>Loading older records...</Text>
         </View>
       </ScrollView>
     </View>
@@ -287,24 +306,22 @@ export const RecordsScreen: React.FC<RecordsScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
   },
   scrollContent: {
     paddingHorizontal: spacing.marginMobile,
-    paddingVertical: 20,
-    paddingBottom: 110,
+    paddingVertical: 14,
+    paddingBottom: 90,
     maxWidth: spacing.containerMaxWidth,
     alignSelf: 'center',
     width: '100%',
-    gap: 20,
+    gap: 14,
   },
   headerSection: {
-    gap: 12,
+    gap: 10,
   },
   pageTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#111827',
   },
   searchBox: {
     position: 'relative',
@@ -312,40 +329,32 @@ const styles = StyleSheet.create({
   },
   searchIcon: {
     position: 'absolute',
-    left: 14,
+    left: 12,
     zIndex: 1,
   },
   searchInput: {
-    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#d1d5db',
     borderRadius: rounded.lg,
-    paddingVertical: 12,
-    paddingLeft: 44,
-    paddingRight: 44,
-    fontSize: 16,
-    color: '#111827',
+    paddingVertical: 9,
+    paddingLeft: 38,
+    paddingRight: 38,
+    fontSize: 14,
   },
   filterBtn: {
     position: 'absolute',
-    right: 10,
+    right: 8,
     padding: 6,
   },
   recordsList: {
-    gap: 16,
+    gap: 10,
   },
   recordCard: {
-    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
     borderRadius: rounded.xl,
-    padding: 16,
-    gap: 14,
+    padding: 14,
+    gap: 10,
     position: 'relative',
     overflow: 'hidden',
-  },
-  recordCardMismatch: {
-    borderColor: '#fecaca',
   },
   mismatchTint: {
     position: 'absolute',
@@ -353,7 +362,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(254, 242, 242, 0.5)',
   },
   recordHeader: {
     flexDirection: 'row',
@@ -362,69 +370,56 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   recordName: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
-  },
-  recordNameMismatch: {
-    color: '#991b1b',
   },
   recordId: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: typography.fontFamily.mono,
-    color: '#6b7280',
     marginTop: 2,
-    letterSpacing: 0.8,
-  },
-  recordIdMismatch: {
-    color: '#dc2626',
   },
   badgeVerified: {
-    backgroundColor: '#000000',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: rounded.default,
+    borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
+    flexShrink: 0,
   },
   badgeVerifiedText: {
-    color: '#ffffff',
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: typography.fontFamily.mono,
     fontWeight: '700',
   },
   badgeReview: {
-    backgroundColor: '#fef9c3',
-    borderWidth: 1,
-    borderColor: '#fef08a',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: rounded.default,
+    borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
+    flexShrink: 0,
   },
   badgeReviewText: {
-    color: '#854d0e',
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: typography.fontFamily.mono,
     fontWeight: '700',
   },
   badgeMismatch: {
-    backgroundColor: '#fee2e2',
-    borderWidth: 1,
-    borderColor: '#fecaca',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: rounded.default,
+    borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
+    flexShrink: 0,
   },
   badgeMismatchText: {
-    color: '#991b1b',
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: typography.fontFamily.mono,
     fontWeight: '700',
   },
@@ -432,34 +427,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 16,
+    gap: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
-    paddingTop: 12,
+    paddingTop: 10,
     zIndex: 1,
   },
   footerItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
   },
   footerItemRight: {
     marginLeft: 'auto',
   },
   footerItemText: {
-    fontSize: 13,
-    color: '#4b5563',
+    fontSize: 11,
     fontFamily: typography.fontFamily.mono,
   },
   loadingFooter: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 12,
   },
   loadingText: {
-    color: '#6b7280',
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: typography.fontFamily.mono,
   },
 });
