@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Image,
   ActivityIndicator,
   Platform,
+  Modal,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -44,7 +45,15 @@ export const DocumentUploadScreen: React.FC<DocumentUploadScreenProps> = ({
 
   const [visaDoc, setVisaDoc] = useState<DocAttachment | null>(null);
   const [nationalIdDoc, setNationalIdDoc] = useState<DocAttachment | null>(null);
-  const [isScanning, setIsScanning] = useState<boolean>(false);
+
+  // Live Camera Scanner Modal State
+  const [activeScanType, setActiveScanType] = useState<'passport' | 'visa' | 'id' | null>(null);
+  const [isCapturingFrame, setIsCapturingFrame] = useState<boolean>(false);
+  const [facing, setFacing] = useState<'environment' | 'user'>('environment');
+  const [webCamActive, setWebCamActive] = useState<boolean>(false);
+
+  const videoRef = useRef<any>(null);
+  const streamRef = useRef<any>(null);
 
   const [extractedData, setExtractedData] = useState({
     fullName: 'Alex Morgan',
@@ -53,50 +62,108 @@ export const DocumentUploadScreen: React.FC<DocumentUploadScreenProps> = ({
     dob: '12 Mar 1992',
   });
 
-  // Web File Picker Helper
-  const pickFileWeb = (docType: 'passport' | 'visa' | 'id', isCamera: boolean) => {
-    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = isCamera ? 'image/*' : 'image/*,application/pdf';
-    if (isCamera) {
-      input.setAttribute('capture', 'environment');
+  // Start Web Camera when Modal is opened
+  useEffect(() => {
+    if (activeScanType && Platform.OS === 'web') {
+      startCameraStream();
+    } else {
+      stopCameraStream();
     }
-
-    input.onchange = (event: any) => {
-      const file = event.target.files?.[0];
-      if (file) {
-        const sizeMB = `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const resultUri = e.target?.result as string;
-          const newDoc: DocAttachment = {
-            name: file.name,
-            uri: resultUri,
-            size: sizeMB,
-            type: file.type,
-          };
-          if (docType === 'passport') setPassportDoc(newDoc);
-          else if (docType === 'visa') setVisaDoc(newDoc);
-          else if (docType === 'id') setNationalIdDoc(newDoc);
-
-          Alert.alert('Document Loaded', `${file.name} successfully uploaded.`);
-        };
-        reader.readAsDataURL(file);
-      }
+    return () => {
+      stopCameraStream();
     };
-    input.click();
+  }, [activeScanType, facing]);
+
+  const startCameraStream = async () => {
+    if (Platform.OS !== 'web' || typeof navigator === 'undefined' || !navigator.mediaDevices) return;
+    try {
+      stopCameraStream();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: facing,
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      });
+      streamRef.current = stream;
+      setWebCamActive(true);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(() => {});
+      }
+    } catch (e) {
+      // If environment camera fails, try default user camera
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        streamRef.current = stream;
+        setWebCamActive(true);
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(() => {});
+        }
+      } catch (err) {
+        setWebCamActive(false);
+      }
+    }
   };
 
-  // Scan Document with Camera
+  const stopCameraStream = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track: any) => track.stop());
+      streamRef.current = null;
+      setWebCamActive(false);
+    }
+  };
+
+  // Capture Frame from Live Camera Stream
+  const handleSnapDocument = () => {
+    if (!activeScanType) return;
+    setIsCapturingFrame(true);
+
+    if (Platform.OS === 'web' && videoRef.current) {
+      try {
+        const video = videoRef.current;
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 1280;
+        canvas.height = video.videoHeight || 720;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+          const fileName = `${activeScanType}-scan-${Date.now().toString().slice(-4)}.jpg`;
+          const newDoc: DocAttachment = {
+            name: fileName,
+            uri: dataUrl,
+            size: '1.9 MB',
+            type: 'image/jpeg',
+          };
+
+          if (activeScanType === 'passport') setPassportDoc(newDoc);
+          else if (activeScanType === 'visa') setVisaDoc(newDoc);
+          else if (activeScanType === 'id') setNationalIdDoc(newDoc);
+
+          stopCameraStream();
+          setActiveScanType(null);
+          Alert.alert('Document Captured', `${newDoc.name} has been scanned and OCR extracted.`);
+        }
+      } catch (e) {
+        Alert.alert('Capture Error', 'Failed to capture frame from webcam.');
+      } finally {
+        setIsCapturingFrame(false);
+      }
+    }
+  };
+
+  // Launch Camera (Opens Web Modal on Web, Native Camera on Mobile)
   const handleScanWithCamera = async (docType: 'passport' | 'visa' | 'id') => {
     if (Platform.OS === 'web') {
-      pickFileWeb(docType, true);
+      setActiveScanType(docType);
       return;
     }
 
+    // Native Mobile Camera
     try {
-      setIsScanning(true);
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         quality: 0.8,
@@ -116,24 +183,52 @@ export const DocumentUploadScreen: React.FC<DocumentUploadScreenProps> = ({
         else if (docType === 'visa') setVisaDoc(newDoc);
         else if (docType === 'id') setNationalIdDoc(newDoc);
 
-        Alert.alert('Document Scanned', `Camera scan for ${docType.toUpperCase()} captured.`);
+        Alert.alert('Document Scanned', `${docType.toUpperCase()} image acquired.`);
       }
     } catch (e) {
-      Alert.alert('Camera Error', 'Could not open camera to scan document.');
-    } finally {
-      setIsScanning(false);
+      Alert.alert('Camera Error', 'Could not open native device camera.');
     }
   };
 
-  // Browse Files / Gallery
+  // Browse Files (File Dialog on Web & File Picker on Native)
   const handleBrowseFiles = async (docType: 'passport' | 'visa' | 'id') => {
     if (Platform.OS === 'web') {
-      pickFileWeb(docType, false);
+      if (typeof document === 'undefined') return;
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*,application/pdf';
+      input.onchange = (event: any) => {
+        const file = event.target.files?.[0];
+        if (file) {
+          const sizeMB = `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const resultUri = e.target?.result as string;
+            const newDoc: DocAttachment = {
+              name: file.name,
+              uri: resultUri,
+              size: sizeMB,
+              type: file.type,
+            };
+            if (docType === 'passport') setPassportDoc(newDoc);
+            else if (docType === 'visa') setVisaDoc(newDoc);
+            else if (docType === 'id') setNationalIdDoc(newDoc);
+
+            if (activeScanType) {
+              stopCameraStream();
+              setActiveScanType(null);
+            }
+            Alert.alert('Document Attached', `${file.name} uploaded successfully.`);
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+      input.click();
       return;
     }
 
+    // Native Mobile Document Picker
     try {
-      setIsScanning(true);
       const res = await DocumentPicker.getDocumentAsync({
         type: ['image/*', 'application/pdf'],
         copyToCacheDirectory: true,
@@ -176,8 +271,6 @@ export const DocumentUploadScreen: React.FC<DocumentUploadScreenProps> = ({
       } catch (err) {
         Alert.alert('Browse Error', 'Could not browse device files.');
       }
-    } finally {
-      setIsScanning(false);
     }
   };
 
@@ -472,20 +565,134 @@ export const DocumentUploadScreen: React.FC<DocumentUploadScreenProps> = ({
           style={[styles.nextButton, { backgroundColor: theme.isDark ? '#ffffff' : '#0f172a' }]}
           onPress={onNext}
           activeOpacity={0.85}
-          disabled={isScanning}
         >
-          {isScanning ? (
-            <ActivityIndicator color={theme.isDark ? '#000000' : '#ffffff'} size="small" />
-          ) : (
-            <>
-              <Text style={[styles.nextButtonText, { color: theme.isDark ? '#000000' : '#ffffff' }]}>
-                Run AI Verification Check
-              </Text>
-              <MaterialIcons name="arrow-forward" size={18} color={theme.isDark ? '#000000' : '#ffffff'} />
-            </>
-          )}
+          <Text style={[styles.nextButtonText, { color: theme.isDark ? '#000000' : '#ffffff' }]}>
+            Run AI Verification Check
+          </Text>
+          <MaterialIcons name="arrow-forward" size={18} color={theme.isDark ? '#000000' : '#ffffff'} />
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Live Web Document Camera Scanner Modal */}
+      <Modal
+        visible={!!activeScanType && Platform.OS === 'web'}
+        animationType="fade"
+        transparent
+        onRequestClose={() => {
+          stopCameraStream();
+          setActiveScanType(null);
+        }}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalScannerCard, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
+            {/* Modal Header */}
+            <View style={[styles.modalHeader, { borderBottomColor: theme.borderLight }]}>
+              <View>
+                <Text style={[styles.modalScannerTitle, { color: theme.textPrimary }]}>
+                  Live Document Camera Scanner
+                </Text>
+                <Text style={[styles.modalScannerSub, { color: theme.textMuted }]}>
+                  Scanning: {activeScanType?.toUpperCase()} Document
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.modalCloseBtn, { backgroundColor: theme.isDark ? theme.surfaceContainerHigh : '#f3f4f6' }]}
+                onPress={() => {
+                  stopCameraStream();
+                  setActiveScanType(null);
+                }}
+              >
+                <MaterialIcons name="close" size={18} color={theme.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Live Camera Viewport */}
+            <View style={[styles.scannerViewport, { backgroundColor: '#0a0b0d' }]}>
+              {/* @ts-ignore */}
+              <video
+                ref={(el: any) => {
+                  videoRef.current = el;
+                  if (el && streamRef.current && el.srcObject !== streamRef.current) {
+                    el.srcObject = streamRef.current;
+                    el.play().catch(() => {});
+                  }
+                }}
+                autoPlay
+                playsInline
+                muted
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
+
+              {/* Document Outline Guide Box */}
+              <View style={[styles.documentGuideBox, { borderColor: theme.badgeOperational }]}>
+                <View style={[styles.cornerTL, { borderColor: theme.badgeOperational }]} />
+                <View style={[styles.cornerTR, { borderColor: theme.badgeOperational }]} />
+                <View style={[styles.cornerBL, { borderColor: theme.badgeOperational }]} />
+                <View style={[styles.cornerBR, { borderColor: theme.badgeOperational }]} />
+                <View style={[styles.guidePill, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
+                  <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '700' }}>
+                    ALIGN {activeScanType?.toUpperCase()} HERE
+                  </Text>
+                </View>
+              </View>
+
+              {/* Flip Button */}
+              {webCamActive && (
+                <TouchableOpacity
+                  style={styles.scannerFlipBtn}
+                  onPress={() => setFacing((p) => (p === 'environment' ? 'user' : 'environment'))}
+                >
+                  <MaterialIcons name="flip-camera-ios" size={20} color="#ffffff" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Modal Actions */}
+            <View style={styles.modalActionRow}>
+              <TouchableOpacity
+                style={[
+                  styles.snapButton,
+                  { backgroundColor: theme.isDark ? '#ffffff' : '#0f172a' },
+                  isCapturingFrame && { opacity: 0.7 },
+                ]}
+                onPress={handleSnapDocument}
+                disabled={isCapturingFrame}
+                activeOpacity={0.85}
+              >
+                {isCapturingFrame ? (
+                  <ActivityIndicator color={theme.isDark ? '#000000' : '#ffffff'} size="small" />
+                ) : (
+                  <>
+                    <MaterialIcons
+                      name="camera"
+                      size={20}
+                      color={theme.isDark ? '#000000' : '#ffffff'}
+                    />
+                    <Text style={[styles.snapButtonText, { color: theme.isDark ? '#000000' : '#ffffff' }]}>
+                      Capture Document
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalBrowseBtn, { backgroundColor: theme.isDark ? theme.surfaceContainerHigh : '#f1f5f9', borderColor: theme.border }]}
+                onPress={() => {
+                  if (activeScanType) handleBrowseFiles(activeScanType);
+                }}
+              >
+                <MaterialIcons name="folder-open" size={16} color={theme.textPrimary} />
+                <Text style={[styles.modalBrowseText, { color: theme.textPrimary }]}>Choose File Instead</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -713,5 +920,136 @@ const styles = StyleSheet.create({
   nextButtonText: {
     fontSize: 14,
     fontWeight: '700',
+  },
+
+  // Modal Scanner Styles
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalScannerCard: {
+    width: '100%',
+    maxWidth: 580,
+    borderRadius: rounded.xl,
+    borderWidth: 1,
+    overflow: 'hidden',
+    gap: 12,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 14,
+    borderBottomWidth: 1,
+  },
+  modalScannerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  modalScannerSub: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    padding: 6,
+    borderRadius: 16,
+  },
+  scannerViewport: {
+    height: 320,
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  documentGuideBox: {
+    position: 'absolute',
+    width: '78%',
+    height: '68%',
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cornerTL: {
+    position: 'absolute',
+    top: -2,
+    left: -2,
+    width: 16,
+    height: 16,
+    borderTopWidth: 4,
+    borderLeftWidth: 4,
+  },
+  cornerTR: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 16,
+    height: 16,
+    borderTopWidth: 4,
+    borderRightWidth: 4,
+  },
+  cornerBL: {
+    position: 'absolute',
+    bottom: -2,
+    left: -2,
+    width: 16,
+    height: 16,
+    borderBottomWidth: 4,
+    borderLeftWidth: 4,
+  },
+  cornerBR: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 16,
+    height: 16,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
+  },
+  guidePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: rounded.full,
+  },
+  scannerFlipBtn: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    padding: 8,
+    borderRadius: 20,
+  },
+  modalActionRow: {
+    padding: 14,
+    gap: 8,
+  },
+  snapButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: rounded.lg,
+    gap: 8,
+  },
+  snapButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  modalBrowseBtn: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderRadius: rounded.lg,
+    borderWidth: 1,
+    gap: 6,
+  },
+  modalBrowseText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
