@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,13 +7,17 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Image,
+  Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
 import { getTheme, typography, rounded, spacing } from '../theme/theme';
 
 interface FaceCaptureScreenProps {
   onBack: () => void;
-  onNext: () => void;
+  onNext: (photoUri?: string) => void;
   isDark?: boolean;
 }
 
@@ -23,30 +27,87 @@ export const FaceCaptureScreen: React.FC<FaceCaptureScreenProps> = ({
   isDark = false,
 }) => {
   const theme = getTheme(isDark);
-  const [isCapturing, setIsCapturing] = useState<boolean>(false);
-  const [photoCaptured, setPhotoCaptured] = useState<boolean>(false);
+  const [permission, requestPermission] = useCameraPermissions();
+  const [facing, setFacing] = useState<'front' | 'back'>('front');
+  const [capturedPhotoUri, setCapturedPhotoUri] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const cameraRef = useRef<any>(null);
 
-  const handleCapture = () => {
-    setIsCapturing(true);
-    setTimeout(() => {
-      setIsCapturing(false);
-      setPhotoCaptured(true);
-    }, 900);
+  const handleCapturePhoto = async () => {
+    if (cameraRef.current && permission?.granted) {
+      try {
+        setIsProcessing(true);
+        const photo = await cameraRef.current.takePictureAsync({
+          quality: 0.8,
+        });
+        if (photo?.uri) {
+          setCapturedPhotoUri(photo.uri);
+        }
+      } catch (err) {
+        // Fallback to ImagePicker camera
+        launchCameraFallback();
+      } finally {
+        setIsProcessing(false);
+      }
+    } else {
+      launchCameraFallback();
+    }
+  };
+
+  const launchCameraFallback = async () => {
+    try {
+      setIsProcessing(true);
+      const res = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (!res.canceled && res.assets && res.assets[0]?.uri) {
+        setCapturedPhotoUri(res.assets[0].uri);
+      }
+    } catch (e) {
+      Alert.alert('Camera Error', 'Could not open device camera. Please check permissions.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handlePickFromGallery = async () => {
+    try {
+      setIsProcessing(true);
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (!res.canceled && res.assets && res.assets[0]?.uri) {
+        setCapturedPhotoUri(res.assets[0].uri);
+      }
+    } catch (e) {
+      Alert.alert('Gallery Error', 'Could not access photo library.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleToggleFacing = () => {
+    setFacing((prev) => (prev === 'front' ? 'back' : 'front'));
   };
 
   const handleRetake = () => {
-    setPhotoCaptured(false);
+    setCapturedPhotoUri(null);
   };
 
   const handleProceed = () => {
-    if (!photoCaptured) {
+    if (!capturedPhotoUri) {
       Alert.alert(
         'Photo Required',
-        'Please capture the subject photo before proceeding to document upload.'
+        'Please capture or upload a subject photo before proceeding to document upload.'
       );
       return;
     }
-    onNext();
+    onNext(capturedPhotoUri);
   };
 
   return (
@@ -61,7 +122,7 @@ export const FaceCaptureScreen: React.FC<FaceCaptureScreenProps> = ({
           <Text style={[styles.backLinkText, { color: theme.textSecondary }]}>Back to Dashboard</Text>
         </TouchableOpacity>
 
-        {/* Page Title & ID Badge Header */}
+        {/* Header Section */}
         <View style={styles.headerSection}>
           <View style={styles.headerTitleCol}>
             <Text style={[styles.pageTitle, { color: theme.textPrimary }]}>New Verification</Text>
@@ -76,7 +137,7 @@ export const FaceCaptureScreen: React.FC<FaceCaptureScreenProps> = ({
           </View>
         </View>
 
-        {/* Stepper Navigation (Responsive Flex Layout) */}
+        {/* Stepper Navigation */}
         <View style={[styles.stepperContainer, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
           {/* Step 1 (Active) */}
           <View style={styles.stepItem}>
@@ -113,58 +174,96 @@ export const FaceCaptureScreen: React.FC<FaceCaptureScreenProps> = ({
           </View>
         </View>
 
-        {/* Camera Live Preview Card */}
+        {/* Camera Live Viewport Card */}
         <View style={[styles.cameraCard, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
           <View style={styles.cameraHeader}>
             <View style={{ flex: 1, marginRight: 6 }}>
               <Text style={[styles.cameraTitle, { color: theme.textPrimary }]}>Live Face Capture</Text>
               <Text style={[styles.cameraSubtitle, { color: theme.textMuted }]}>
-                Position face inside the guide.
+                Position subject face inside the biometric oval guide.
               </Text>
             </View>
 
             <View style={[styles.cameraReadyBadge, { backgroundColor: theme.isDark ? '#183a24' : '#e6f4ea', borderColor: theme.isDark ? '#2d5f3f' : '#bbf7d0' }]}>
               <View style={[styles.readyDot, { backgroundColor: theme.badgeOperational }]} />
               <Text style={[styles.cameraReadyText, { color: theme.isDark ? '#4cd964' : '#137333' }]}>
-                {photoCaptured ? 'ACQUIRED' : 'CAMERA READY'}
+                {capturedPhotoUri ? 'ACQUIRED' : permission?.granted ? 'LIVE CAMERA' : 'READY'}
               </Text>
             </View>
           </View>
 
-          {/* Viewport */}
-          <View style={[styles.viewport, { backgroundColor: theme.isDark ? '#0e0f12' : '#f0f4f8' }]}>
-            <View style={[styles.faceGuideOval, { borderColor: photoCaptured ? theme.badgeOperational : (theme.isDark ? '#6b7280' : '#4b5563') }]}>
-              <MaterialIcons
-                name="account-circle"
-                size={72}
-                color={photoCaptured ? theme.badgeOperational : (theme.isDark ? '#4b5563' : '#9ca3af')}
-              />
-              <View style={[styles.guidePill, { backgroundColor: theme.isDark ? 'rgba(30,31,35,0.85)' : 'rgba(255,255,255,0.85)' }]}>
-                <Text style={[styles.guidePillText, { color: theme.textPrimary }]}>
-                  {photoCaptured ? 'FACE ACQUIRED ✓' : 'FACE GUIDE'}
-                </Text>
+          {/* Viewport Box */}
+          <View style={[styles.viewport, { backgroundColor: theme.isDark ? '#0a0b0d' : '#e2e8f0' }]}>
+            {capturedPhotoUri ? (
+              // Captured Photo Preview
+              <View style={styles.previewContainer}>
+                <Image source={{ uri: capturedPhotoUri }} style={styles.capturedImage} resizeMode="cover" />
+                <View style={[styles.guidePill, { position: 'absolute', bottom: 12, backgroundColor: 'rgba(0,0,0,0.75)' }]}>
+                  <MaterialIcons name="check-circle" size={14} color={theme.badgeOperational} />
+                  <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '700', marginLeft: 4 }}>
+                    PHOTO ACQUIRED
+                  </Text>
+                </View>
               </View>
-            </View>
+            ) : permission?.granted && Platform.OS !== 'web' ? (
+              // Live Native Camera View
+              <CameraView
+                ref={cameraRef}
+                style={StyleSheet.absoluteFillObject}
+                facing={facing}
+              >
+                <View style={styles.cameraOverlay}>
+                  <View style={[styles.faceGuideOval, { borderColor: theme.badgeOperational }]}>
+                    <View style={[styles.guidePill, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
+                      <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '700' }}>FACE GUIDE</Text>
+                    </View>
+                  </View>
 
-            <View style={[styles.liveIndicator, { backgroundColor: theme.isDark ? 'rgba(30,31,35,0.9)' : 'rgba(255,255,255,0.9)' }]}>
-              <MaterialIcons name="info" size={13} color={theme.textMuted} />
-              <Text style={[styles.liveIndicatorText, { color: theme.textPrimary }]}>LIVE PREVIEW</Text>
-            </View>
+                  <TouchableOpacity style={styles.flipBtn} onPress={handleToggleFacing}>
+                    <MaterialIcons name="flip-camera-ios" size={20} color="#ffffff" />
+                  </TouchableOpacity>
+                </View>
+              </CameraView>
+            ) : (
+              // Permission Request / Simulation Guide
+              <View style={styles.placeholderCenter}>
+                <View style={[styles.faceGuideOval, { borderColor: theme.isDark ? '#6b7280' : '#4b5563' }]}>
+                  <MaterialIcons
+                    name="account-circle"
+                    size={68}
+                    color={theme.isDark ? '#4b5563' : '#9ca3af'}
+                  />
+                  <View style={[styles.guidePill, { backgroundColor: theme.isDark ? 'rgba(30,31,35,0.85)' : 'rgba(255,255,255,0.85)' }]}>
+                    <Text style={[styles.guidePillText, { color: theme.textPrimary }]}>FACE GUIDE</Text>
+                  </View>
+                </View>
+
+                {!permission?.granted && (
+                  <TouchableOpacity
+                    style={[styles.permissionBtn, { backgroundColor: theme.badgeOperational }]}
+                    onPress={requestPermission}
+                  >
+                    <MaterialIcons name="videocam" size={14} color="#ffffff" />
+                    <Text style={styles.permissionBtnText}>Enable Live Camera</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
           </View>
 
-          {/* Capture Actions */}
+          {/* Action Buttons */}
           <View style={styles.actionRow}>
             <TouchableOpacity
               style={[
                 styles.captureButton,
                 { backgroundColor: theme.isDark ? '#ffffff' : '#0f172a' },
-                isCapturing && { opacity: 0.7 },
+                isProcessing && { opacity: 0.7 },
               ]}
-              onPress={handleCapture}
-              disabled={isCapturing}
+              onPress={handleCapturePhoto}
+              disabled={isProcessing}
               activeOpacity={0.85}
             >
-              {isCapturing ? (
+              {isProcessing ? (
                 <ActivityIndicator color={theme.isDark ? '#000000' : '#ffffff'} size="small" />
               ) : (
                 <>
@@ -174,20 +273,30 @@ export const FaceCaptureScreen: React.FC<FaceCaptureScreenProps> = ({
                     color={theme.isDark ? '#000000' : '#ffffff'}
                   />
                   <Text style={[styles.captureButtonText, { color: theme.isDark ? '#000000' : '#ffffff' }]}>
-                    {photoCaptured ? 'Recapture' : 'Capture Photo'}
+                    {capturedPhotoUri ? 'Recapture Photo' : 'Capture Photo'}
                   </Text>
                 </>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.retakeButton, { borderColor: theme.border, backgroundColor: theme.surfaceCard }]}
-              onPress={handleRetake}
+              style={[styles.galleryButton, { borderColor: theme.border, backgroundColor: theme.surfaceCard }]}
+              onPress={handlePickFromGallery}
               activeOpacity={0.8}
             >
-              <MaterialIcons name="refresh" size={18} color={theme.textPrimary} />
-              <Text style={[styles.retakeButtonText, { color: theme.textPrimary }]}>Retake</Text>
+              <MaterialIcons name="photo-library" size={18} color={theme.textPrimary} />
+              <Text style={[styles.galleryButtonText, { color: theme.textPrimary }]}>Gallery</Text>
             </TouchableOpacity>
+
+            {capturedPhotoUri && (
+              <TouchableOpacity
+                style={[styles.retakeButton, { borderColor: theme.border, backgroundColor: theme.surfaceCard }]}
+                onPress={handleRetake}
+                activeOpacity={0.8}
+              >
+                <MaterialIcons name="refresh" size={18} color={theme.textPrimary} />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -212,7 +321,7 @@ export const FaceCaptureScreen: React.FC<FaceCaptureScreenProps> = ({
           </View>
         </View>
 
-        {/* Footer Meta & Next Button */}
+        {/* Footer Card */}
         <View style={[styles.footerCard, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
           <View style={styles.metaRow}>
             <Text style={[styles.footerMetaText, { color: theme.textMuted }]}>
@@ -227,7 +336,7 @@ export const FaceCaptureScreen: React.FC<FaceCaptureScreenProps> = ({
             style={[
               styles.nextButton,
               { backgroundColor: theme.isDark ? '#ffffff' : '#0f172a' },
-              !photoCaptured && { opacity: 0.6 },
+              !capturedPhotoUri && { opacity: 0.6 },
             ]}
             onPress={handleProceed}
             activeOpacity={0.85}
@@ -388,12 +497,31 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   viewport: {
-    height: 240,
+    height: 260,
     borderRadius: rounded.lg,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
     overflow: 'hidden',
+  },
+  previewContainer: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  capturedImage: {
+    width: '100%',
+    height: '100%',
+  },
+  cameraOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderCenter: {
+    alignItems: 'center',
+    gap: 12,
   },
   faceGuideOval: {
     width: 140,
@@ -407,29 +535,36 @@ const styles = StyleSheet.create({
   },
   guidePill: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: rounded.full,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   guidePillText: {
     fontSize: 10,
     fontFamily: typography.fontFamily.mono,
     fontWeight: '700',
   },
-  liveIndicator: {
+  flipBtn: {
     position: 'absolute',
-    bottom: 10,
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    padding: 8,
+    borderRadius: 20,
+  },
+  permissionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: rounded.full,
   },
-  liveIndicatorText: {
-    fontSize: 9,
-    fontFamily: typography.fontFamily.mono,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+  permissionBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
   },
   actionRow: {
     flexDirection: 'row',
@@ -445,22 +580,30 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   captureButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
   },
-  retakeButton: {
+  galleryButton: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: rounded.lg,
     borderWidth: 1,
     gap: 4,
   },
-  retakeButtonText: {
-    fontSize: 14,
+  galleryButtonText: {
+    fontSize: 13,
     fontWeight: '600',
+  },
+  retakeButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: rounded.lg,
+    borderWidth: 1,
   },
   checklistSection: {
     gap: 8,

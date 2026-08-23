@@ -7,9 +7,20 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { getTheme, typography, rounded, spacing } from '../theme/theme';
+
+interface DocAttachment {
+  name: string;
+  uri?: string;
+  size?: string;
+  type?: string;
+}
 
 interface DocumentUploadScreenProps {
   onBack: () => void;
@@ -23,8 +34,16 @@ export const DocumentUploadScreen: React.FC<DocumentUploadScreenProps> = ({
   isDark = false,
 }) => {
   const theme = getTheme(isDark);
-  const [visaAttached, setVisaAttached] = useState<boolean>(false);
-  const [nationalIdAttached, setNationalIdAttached] = useState<boolean>(false);
+
+  const [passportDoc, setPassportDoc] = useState<DocAttachment>({
+    name: 'passport-front.jpg',
+    size: '2.4 MB',
+    type: 'image/jpeg',
+  });
+
+  const [visaDoc, setVisaDoc] = useState<DocAttachment | null>(null);
+  const [nationalIdDoc, setNationalIdDoc] = useState<DocAttachment | null>(null);
+  const [isScanning, setIsScanning] = useState<boolean>(false);
 
   const [extractedData, setExtractedData] = useState({
     fullName: 'Alex Morgan',
@@ -33,14 +52,93 @@ export const DocumentUploadScreen: React.FC<DocumentUploadScreenProps> = ({
     dob: '12 Mar 1992',
   });
 
-  const handleAttachVisa = () => {
-    setVisaAttached(true);
-    Alert.alert('Visa Uploaded', 'Tourist Visa (V-90812) attached and scanned.');
+  // Scan Document with Camera
+  const handleScanWithCamera = async (docType: 'passport' | 'visa' | 'id') => {
+    try {
+      setIsScanning(true);
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]?.uri) {
+        const asset = result.assets[0];
+        const fileName = `${docType}-scan-${Date.now().toString().slice(-4)}.jpg`;
+        const newDoc: DocAttachment = {
+          name: fileName,
+          uri: asset.uri,
+          size: '1.8 MB',
+          type: 'image/jpeg',
+        };
+
+        if (docType === 'passport') setPassportDoc(newDoc);
+        else if (docType === 'visa') setVisaDoc(newDoc);
+        else if (docType === 'id') setNationalIdDoc(newDoc);
+
+        Alert.alert('Document Scanned', `Camera scan for ${docType.toUpperCase()} captured and OCR extracted.`);
+      }
+    } catch (e) {
+      Alert.alert('Camera Error', 'Could not open camera to scan document.');
+    } finally {
+      setIsScanning(false);
+    }
   };
 
-  const handleAttachId = () => {
-    setNationalIdAttached(true);
-    Alert.alert('National ID Uploaded', 'US State ID (ending 4821) verified.');
+  // Browse Files / Gallery
+  const handleBrowseFiles = async (docType: 'passport' | 'visa' | 'id') => {
+    try {
+      setIsScanning(true);
+      const res = await DocumentPicker.getDocumentAsync({
+        type: ['image/*', 'application/pdf'],
+        copyToCacheDirectory: true,
+      });
+
+      if (!res.canceled && res.assets && res.assets[0]) {
+        const file = res.assets[0];
+        const fileSizeMB = file.size ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : '1.2 MB';
+        const newDoc: DocAttachment = {
+          name: file.name || `${docType}-doc.pdf`,
+          uri: file.uri,
+          size: fileSizeMB,
+          type: file.mimeType || 'application/pdf',
+        };
+
+        if (docType === 'passport') setPassportDoc(newDoc);
+        else if (docType === 'visa') setVisaDoc(newDoc);
+        else if (docType === 'id') setNationalIdDoc(newDoc);
+
+        Alert.alert('Document Attached', `${newDoc.name} uploaded from device storage.`);
+      }
+    } catch (e) {
+      // Fallback to ImagePicker gallery
+      try {
+        const imgRes = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          quality: 0.8,
+        });
+        if (!imgRes.canceled && imgRes.assets && imgRes.assets[0]) {
+          const asset = imgRes.assets[0];
+          const newDoc: DocAttachment = {
+            name: `${docType}-upload.jpg`,
+            uri: asset.uri,
+            size: '2.1 MB',
+            type: 'image/jpeg',
+          };
+          if (docType === 'passport') setPassportDoc(newDoc);
+          else if (docType === 'visa') setVisaDoc(newDoc);
+          else if (docType === 'id') setNationalIdDoc(newDoc);
+        }
+      } catch (err) {
+        Alert.alert('Browse Error', 'Could not browse device files.');
+      }
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handleRemoveDoc = (docType: 'passport' | 'visa' | 'id') => {
+    if (docType === 'visa') setVisaDoc(null);
+    else if (docType === 'id') setNationalIdDoc(null);
   };
 
   return (
@@ -60,7 +158,7 @@ export const DocumentUploadScreen: React.FC<DocumentUploadScreenProps> = ({
           <View style={styles.headerTitleCol}>
             <Text style={[styles.pageTitle, { color: theme.textPrimary }]}>Document Upload</Text>
             <Text style={[styles.pageSubtitle, { color: theme.textMuted }]} numberOfLines={1}>
-              Upload and scan government issued credentials.
+              Scan credentials via Camera or Browse device files.
             </Text>
           </View>
 
@@ -107,42 +205,69 @@ export const DocumentUploadScreen: React.FC<DocumentUploadScreenProps> = ({
           </View>
         </View>
 
-        {/* Passport Card (Uploaded) */}
+        {/* 1. Passport Document Card */}
         <View style={[styles.docCard, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
           <View style={styles.docHeaderRow}>
             <View style={{ flex: 1, marginRight: 6 }}>
-              <Text style={[styles.docCardTitle, { color: theme.textPrimary }]}>Passport Document</Text>
-              <Text style={[styles.docCardSubtitle, { color: theme.textMuted }]}>Primary travel identifier</Text>
+              <Text style={[styles.docCardTitle, { color: theme.textPrimary }]}>1. Passport (Primary)</Text>
+              <Text style={[styles.docCardSubtitle, { color: theme.textMuted }]}>Required international identifier</Text>
             </View>
 
             <View style={[styles.verifiedPill, { backgroundColor: theme.isDark ? '#183a24' : '#e6f4ea', borderColor: theme.isDark ? '#2d5f3f' : '#bbf7d0' }]}>
               <MaterialIcons name="check-circle" size={13} color={theme.badgeOperational} />
-              <Text style={[styles.verifiedPillText, { color: theme.isDark ? '#4cd964' : '#137333' }]}>UPLOADED</Text>
+              <Text style={[styles.verifiedPillText, { color: theme.isDark ? '#4cd964' : '#137333' }]}>ATTACHED</Text>
             </View>
           </View>
 
+          {/* Attachment Preview Box */}
           <View style={[styles.fileAttachmentBox, { backgroundColor: theme.isDark ? theme.surfaceContainerLow : '#f8fafc', borderColor: theme.border }]}>
             <View style={styles.fileLeft}>
-              <MaterialIcons name="menu-book" size={24} color={theme.textPrimary} />
-              <View>
-                <Text style={[styles.fileName, { color: theme.textPrimary }]}>passport-front.jpg</Text>
-                <Text style={[styles.fileMeta, { color: theme.textMuted }]}>2.4 MB · High Resolution OCR</Text>
+              {passportDoc.uri ? (
+                <Image source={{ uri: passportDoc.uri }} style={styles.docThumbnail} />
+              ) : (
+                <MaterialIcons name="menu-book" size={24} color={theme.textPrimary} />
+              )}
+              <View style={{ flex: 1, marginLeft: 8 }}>
+                <Text style={[styles.fileName, { color: theme.textPrimary }]} numberOfLines={1}>
+                  {passportDoc.name}
+                </Text>
+                <Text style={[styles.fileMeta, { color: theme.textMuted }]}>
+                  {passportDoc.size} · Optical Character Recognition
+                </Text>
               </View>
             </View>
-            <TouchableOpacity onPress={() => Alert.alert('Preview', 'Displaying passport-front.jpg')}>
-              <MaterialIcons name="visibility" size={20} color={theme.textSecondary} />
+          </View>
+
+          {/* Action Row for Passport */}
+          <View style={styles.docActionRow}>
+            <TouchableOpacity
+              style={[styles.docBtn, { backgroundColor: theme.isDark ? theme.surfaceContainerHigh : '#f1f5f9', borderColor: theme.border }]}
+              onPress={() => handleScanWithCamera('passport')}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="camera-alt" size={16} color={theme.textPrimary} />
+              <Text style={[styles.docBtnText, { color: theme.textPrimary }]}>Scan with Camera</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.docBtn, { backgroundColor: theme.isDark ? theme.surfaceContainerHigh : '#f1f5f9', borderColor: theme.border }]}
+              onPress={() => handleBrowseFiles('passport')}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="folder-open" size={16} color={theme.textPrimary} />
+              <Text style={[styles.docBtnText, { color: theme.textPrimary }]}>Browse Files</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Visa Document (Drop Zone) */}
+        {/* 2. Visa Document Card */}
         <View style={[styles.docCard, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
           <View style={styles.docHeaderRow}>
             <View style={{ flex: 1, marginRight: 6 }}>
-              <Text style={[styles.docCardTitle, { color: theme.textPrimary }]}>Visa (Optional / Secondary)</Text>
-              <Text style={[styles.docCardSubtitle, { color: theme.textMuted }]}>Attach entry permit if required</Text>
+              <Text style={[styles.docCardTitle, { color: theme.textPrimary }]}>2. Visa Permit</Text>
+              <Text style={[styles.docCardSubtitle, { color: theme.textMuted }]}>Entry / Transit endorsement</Text>
             </View>
-            {visaAttached ? (
+            {visaDoc ? (
               <View style={[styles.verifiedPill, { backgroundColor: theme.isDark ? '#183a24' : '#e6f4ea', borderColor: theme.isDark ? '#2d5f3f' : '#bbf7d0' }]}>
                 <MaterialIcons name="check-circle" size={13} color={theme.badgeOperational} />
                 <Text style={[styles.verifiedPillText, { color: theme.isDark ? '#4cd964' : '#137333' }]}>ATTACHED</Text>
@@ -154,36 +279,56 @@ export const DocumentUploadScreen: React.FC<DocumentUploadScreenProps> = ({
             )}
           </View>
 
-          <TouchableOpacity
-            style={[
-              styles.dropZone,
-              {
-                borderColor: theme.borderDark,
-                backgroundColor: theme.isDark ? theme.surfaceContainerLow : '#fafafa',
-              },
-            ]}
-            onPress={handleAttachVisa}
-            activeOpacity={0.8}
-          >
-            <MaterialIcons
-              name={visaAttached ? 'check-circle' : 'add-photo-alternate'}
-              size={28}
-              color={visaAttached ? theme.badgeOperational : theme.textMuted}
-            />
-            <Text style={[styles.dropZoneText, { color: theme.textPrimary }]}>
-              {visaAttached ? 'Visa attached (tourist-visa.pdf)' : 'Tap to scan or attach Visa'}
-            </Text>
-          </TouchableOpacity>
+          {visaDoc ? (
+            <View style={[styles.fileAttachmentBox, { backgroundColor: theme.isDark ? theme.surfaceContainerLow : '#f8fafc', borderColor: theme.border }]}>
+              <View style={styles.fileLeft}>
+                {visaDoc.uri ? (
+                  <Image source={{ uri: visaDoc.uri }} style={styles.docThumbnail} />
+                ) : (
+                  <MaterialIcons name="description" size={24} color={theme.textPrimary} />
+                )}
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text style={[styles.fileName, { color: theme.textPrimary }]} numberOfLines={1}>
+                    {visaDoc.name}
+                  </Text>
+                  <Text style={[styles.fileMeta, { color: theme.textMuted }]}>{visaDoc.size}</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => handleRemoveDoc('visa')}>
+                <MaterialIcons name="close" size={18} color={theme.errorText} />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.docActionRow}>
+              <TouchableOpacity
+                style={[styles.docBtn, { backgroundColor: theme.isDark ? theme.surfaceContainerHigh : '#f1f5f9', borderColor: theme.border }]}
+                onPress={() => handleScanWithCamera('visa')}
+                activeOpacity={0.8}
+              >
+                <MaterialIcons name="camera-alt" size={16} color={theme.textPrimary} />
+                <Text style={[styles.docBtnText, { color: theme.textPrimary }]}>Scan Visa</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.docBtn, { backgroundColor: theme.isDark ? theme.surfaceContainerHigh : '#f1f5f9', borderColor: theme.border }]}
+                onPress={() => handleBrowseFiles('visa')}
+                activeOpacity={0.8}
+              >
+                <MaterialIcons name="folder-open" size={16} color={theme.textPrimary} />
+                <Text style={[styles.docBtnText, { color: theme.textPrimary }]}>Browse Files</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
-        {/* National ID Document */}
+        {/* 3. National ID Document Card */}
         <View style={[styles.docCard, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
           <View style={styles.docHeaderRow}>
             <View style={{ flex: 1, marginRight: 6 }}>
-              <Text style={[styles.docCardTitle, { color: theme.textPrimary }]}>National Identity Card</Text>
+              <Text style={[styles.docCardTitle, { color: theme.textPrimary }]}>3. National Identity Card</Text>
               <Text style={[styles.docCardSubtitle, { color: theme.textMuted }]}>Secondary biometric proof</Text>
             </View>
-            {nationalIdAttached ? (
+            {nationalIdDoc ? (
               <View style={[styles.verifiedPill, { backgroundColor: theme.isDark ? '#183a24' : '#e6f4ea', borderColor: theme.isDark ? '#2d5f3f' : '#bbf7d0' }]}>
                 <MaterialIcons name="check-circle" size={13} color={theme.badgeOperational} />
                 <Text style={[styles.verifiedPillText, { color: theme.isDark ? '#4cd964' : '#137333' }]}>ATTACHED</Text>
@@ -195,26 +340,46 @@ export const DocumentUploadScreen: React.FC<DocumentUploadScreenProps> = ({
             )}
           </View>
 
-          <TouchableOpacity
-            style={[
-              styles.dropZone,
-              {
-                borderColor: theme.borderDark,
-                backgroundColor: theme.isDark ? theme.surfaceContainerLow : '#fafafa',
-              },
-            ]}
-            onPress={handleAttachId}
-            activeOpacity={0.8}
-          >
-            <MaterialIcons
-              name={nationalIdAttached ? 'check-circle' : 'badge'}
-              size={28}
-              color={nationalIdAttached ? theme.badgeOperational : theme.textMuted}
-            />
-            <Text style={[styles.dropZoneText, { color: theme.textPrimary }]}>
-              {nationalIdAttached ? 'National ID attached (state-id.jpg)' : 'Tap to scan National ID'}
-            </Text>
-          </TouchableOpacity>
+          {nationalIdDoc ? (
+            <View style={[styles.fileAttachmentBox, { backgroundColor: theme.isDark ? theme.surfaceContainerLow : '#f8fafc', borderColor: theme.border }]}>
+              <View style={styles.fileLeft}>
+                {nationalIdDoc.uri ? (
+                  <Image source={{ uri: nationalIdDoc.uri }} style={styles.docThumbnail} />
+                ) : (
+                  <MaterialIcons name="badge" size={24} color={theme.textPrimary} />
+                )}
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text style={[styles.fileName, { color: theme.textPrimary }]} numberOfLines={1}>
+                    {nationalIdDoc.name}
+                  </Text>
+                  <Text style={[styles.fileMeta, { color: theme.textMuted }]}>{nationalIdDoc.size}</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => handleRemoveDoc('id')}>
+                <MaterialIcons name="close" size={18} color={theme.errorText} />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.docActionRow}>
+              <TouchableOpacity
+                style={[styles.docBtn, { backgroundColor: theme.isDark ? theme.surfaceContainerHigh : '#f1f5f9', borderColor: theme.border }]}
+                onPress={() => handleScanWithCamera('id')}
+                activeOpacity={0.8}
+              >
+                <MaterialIcons name="camera-alt" size={16} color={theme.textPrimary} />
+                <Text style={[styles.docBtnText, { color: theme.textPrimary }]}>Scan National ID</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.docBtn, { backgroundColor: theme.isDark ? theme.surfaceContainerHigh : '#f1f5f9', borderColor: theme.border }]}
+                onPress={() => handleBrowseFiles('id')}
+                activeOpacity={0.8}
+              >
+                <MaterialIcons name="folder-open" size={16} color={theme.textPrimary} />
+                <Text style={[styles.docBtnText, { color: theme.textPrimary }]}>Browse Files</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* Extracted Fields Form */}
@@ -260,16 +425,23 @@ export const DocumentUploadScreen: React.FC<DocumentUploadScreenProps> = ({
           </View>
         </View>
 
-        {/* Next Button */}
+        {/* Run AI Verification Button */}
         <TouchableOpacity
           style={[styles.nextButton, { backgroundColor: theme.isDark ? '#ffffff' : '#0f172a' }]}
           onPress={onNext}
           activeOpacity={0.85}
+          disabled={isScanning}
         >
-          <Text style={[styles.nextButtonText, { color: theme.isDark ? '#000000' : '#ffffff' }]}>
-            Run AI Verification Check
-          </Text>
-          <MaterialIcons name="arrow-forward" size={18} color={theme.isDark ? '#000000' : '#ffffff'} />
+          {isScanning ? (
+            <ActivityIndicator color={theme.isDark ? '#000000' : '#ffffff'} size="small" />
+          ) : (
+            <>
+              <Text style={[styles.nextButtonText, { color: theme.isDark ? '#000000' : '#ffffff' }]}>
+                Run AI Verification Check
+              </Text>
+              <MaterialIcons name="arrow-forward" size={18} color={theme.isDark ? '#000000' : '#ffffff'} />
+            </>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -438,7 +610,12 @@ const styles = StyleSheet.create({
   fileLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    flex: 1,
+  },
+  docThumbnail: {
+    width: 36,
+    height: 36,
+    borderRadius: 4,
   },
   fileName: {
     fontSize: 13,
@@ -447,16 +624,21 @@ const styles = StyleSheet.create({
   fileMeta: {
     fontSize: 11,
   },
-  dropZone: {
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderRadius: rounded.lg,
-    padding: 18,
-    justifyContent: 'center',
+  docActionRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  docBtn: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: rounded.md,
+    borderWidth: 1,
     gap: 6,
   },
-  dropZoneText: {
+  docBtnText: {
     fontSize: 12,
     fontWeight: '600',
   },
