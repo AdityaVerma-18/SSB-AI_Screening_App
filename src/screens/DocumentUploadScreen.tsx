@@ -9,6 +9,7 @@ import {
   Alert,
   Image,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -52,8 +53,48 @@ export const DocumentUploadScreen: React.FC<DocumentUploadScreenProps> = ({
     dob: '12 Mar 1992',
   });
 
+  // Web File Picker Helper
+  const pickFileWeb = (docType: 'passport' | 'visa' | 'id', isCamera: boolean) => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = isCamera ? 'image/*' : 'image/*,application/pdf';
+    if (isCamera) {
+      input.setAttribute('capture', 'environment');
+    }
+
+    input.onchange = (event: any) => {
+      const file = event.target.files?.[0];
+      if (file) {
+        const sizeMB = `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const resultUri = e.target?.result as string;
+          const newDoc: DocAttachment = {
+            name: file.name,
+            uri: resultUri,
+            size: sizeMB,
+            type: file.type,
+          };
+          if (docType === 'passport') setPassportDoc(newDoc);
+          else if (docType === 'visa') setVisaDoc(newDoc);
+          else if (docType === 'id') setNationalIdDoc(newDoc);
+
+          Alert.alert('Document Loaded', `${file.name} successfully uploaded.`);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
+  };
+
   // Scan Document with Camera
   const handleScanWithCamera = async (docType: 'passport' | 'visa' | 'id') => {
+    if (Platform.OS === 'web') {
+      pickFileWeb(docType, true);
+      return;
+    }
+
     try {
       setIsScanning(true);
       const result = await ImagePicker.launchCameraAsync({
@@ -75,7 +116,7 @@ export const DocumentUploadScreen: React.FC<DocumentUploadScreenProps> = ({
         else if (docType === 'visa') setVisaDoc(newDoc);
         else if (docType === 'id') setNationalIdDoc(newDoc);
 
-        Alert.alert('Document Scanned', `Camera scan for ${docType.toUpperCase()} captured and OCR extracted.`);
+        Alert.alert('Document Scanned', `Camera scan for ${docType.toUpperCase()} captured.`);
       }
     } catch (e) {
       Alert.alert('Camera Error', 'Could not open camera to scan document.');
@@ -86,6 +127,11 @@ export const DocumentUploadScreen: React.FC<DocumentUploadScreenProps> = ({
 
   // Browse Files / Gallery
   const handleBrowseFiles = async (docType: 'passport' | 'visa' | 'id') => {
+    if (Platform.OS === 'web') {
+      pickFileWeb(docType, false);
+      return;
+    }
+
     try {
       setIsScanning(true);
       const res = await DocumentPicker.getDocumentAsync({
@@ -107,10 +153,9 @@ export const DocumentUploadScreen: React.FC<DocumentUploadScreenProps> = ({
         else if (docType === 'visa') setVisaDoc(newDoc);
         else if (docType === 'id') setNationalIdDoc(newDoc);
 
-        Alert.alert('Document Attached', `${newDoc.name} uploaded from device storage.`);
+        Alert.alert('Document Attached', `${newDoc.name} uploaded from storage.`);
       }
     } catch (e) {
-      // Fallback to ImagePicker gallery
       try {
         const imgRes = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ['images'],
@@ -158,7 +203,7 @@ export const DocumentUploadScreen: React.FC<DocumentUploadScreenProps> = ({
           <View style={styles.headerTitleCol}>
             <Text style={[styles.pageTitle, { color: theme.textPrimary }]}>Document Upload</Text>
             <Text style={[styles.pageSubtitle, { color: theme.textMuted }]} numberOfLines={1}>
-              Scan credentials via Camera or Browse device files.
+              Scan credentials via Camera or Browse files.
             </Text>
           </View>
 
@@ -170,7 +215,6 @@ export const DocumentUploadScreen: React.FC<DocumentUploadScreenProps> = ({
 
         {/* Stepper Navigation */}
         <View style={[styles.stepperContainer, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
-          {/* Step 1 */}
           <View style={styles.stepItem}>
             <View style={[styles.stepCircle, { backgroundColor: theme.isDark ? '#143820' : '#e6f4ea', borderColor: theme.badgeOperational }]}>
               <MaterialIcons name="check" size={14} color={theme.badgeOperational} />
@@ -182,7 +226,6 @@ export const DocumentUploadScreen: React.FC<DocumentUploadScreenProps> = ({
 
           <View style={[styles.stepLine, { backgroundColor: theme.border }]} />
 
-          {/* Step 2 (Active) */}
           <View style={styles.stepItem}>
             <View style={[styles.stepCircle, styles.stepCircleActive]}>
               <Text style={styles.stepNumActive}>2</Text>
@@ -194,7 +237,6 @@ export const DocumentUploadScreen: React.FC<DocumentUploadScreenProps> = ({
 
           <View style={[styles.stepLine, { backgroundColor: theme.border }]} />
 
-          {/* Step 3 */}
           <View style={styles.stepItem}>
             <View style={[styles.stepCircle, { backgroundColor: theme.isDark ? theme.surfaceContainerHigh : '#f3f4f6', borderColor: theme.border }]}>
               <Text style={[styles.stepNum, { color: theme.textMuted }]}>3</Text>

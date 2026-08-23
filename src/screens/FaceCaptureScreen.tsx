@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -27,67 +27,164 @@ export const FaceCaptureScreen: React.FC<FaceCaptureScreenProps> = ({
   isDark = false,
 }) => {
   const theme = getTheme(isDark);
-  const [permission, requestPermission] = useCameraPermissions();
+  const [nativePermission, requestNativePermission] = useCameraPermissions();
   const [facing, setFacing] = useState<'front' | 'back'>('front');
   const [capturedPhotoUri, setCapturedPhotoUri] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [webStreamActive, setWebStreamActive] = useState<boolean>(false);
+  
   const cameraRef = useRef<any>(null);
+  const webVideoRef = useRef<any>(null);
+  const webStreamRef = useRef<any>(null);
 
+  // Web Webcam Initialization
+  useEffect(() => {
+    if (Platform.OS === 'web' && !capturedPhotoUri) {
+      startWebCamera();
+    }
+    return () => {
+      stopWebCamera();
+    };
+  }, [facing, capturedPhotoUri]);
+
+  const startWebCamera = async () => {
+    if (Platform.OS !== 'web' || typeof navigator === 'undefined' || !navigator.mediaDevices) return;
+    try {
+      stopWebCamera();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: facing === 'front' ? 'user' : 'environment',
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+        },
+        audio: false,
+      });
+      webStreamRef.current = stream;
+      setWebStreamActive(true);
+      if (webVideoRef.current) {
+        webVideoRef.current.srcObject = stream;
+        webVideoRef.current.play().catch(() => {});
+      }
+    } catch (e) {
+      setWebStreamActive(false);
+    }
+  };
+
+  const stopWebCamera = () => {
+    if (webStreamRef.current) {
+      webStreamRef.current.getTracks().forEach((track: any) => track.stop());
+      webStreamRef.current = null;
+      setWebStreamActive(false);
+    }
+  };
+
+  // Capture from Web Camera Stream
+  const captureWebFrame = (): string | null => {
+    if (Platform.OS !== 'web' || !webVideoRef.current) return null;
+    try {
+      const video = webVideoRef.current;
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL('image/jpeg', 0.85);
+      }
+    } catch (e) {
+      console.warn('Web capture error:', e);
+    }
+    return null;
+  };
+
+  // Main Capture Trigger (Cross Platform)
   const handleCapturePhoto = async () => {
-    if (cameraRef.current && permission?.granted) {
+    setIsProcessing(true);
+    try {
+      if (Platform.OS === 'web') {
+        if (webStreamActive && webVideoRef.current) {
+          const photoDataUrl = captureWebFrame();
+          if (photoDataUrl) {
+            setCapturedPhotoUri(photoDataUrl);
+            stopWebCamera();
+            setIsProcessing(false);
+            return;
+          }
+        }
+        // Web fallback: Input file picker
+        pickImageWeb(true);
+      } else {
+        // Native Expo Camera
+        if (cameraRef.current && nativePermission?.granted) {
+          const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
+          if (photo?.uri) {
+            setCapturedPhotoUri(photo.uri);
+          }
+        } else {
+          // Native ImagePicker Camera Fallback
+          const res = await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+          });
+          if (!res.canceled && res.assets && res.assets[0]?.uri) {
+            setCapturedPhotoUri(res.assets[0].uri);
+          }
+        }
+      }
+    } catch (err) {
+      Alert.alert('Camera Error', 'Could not capture photo. Please check device permissions.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Web File Picker Helper
+  const pickImageWeb = (isCameraMode = false) => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    if (isCameraMode) {
+      input.setAttribute('capture', 'user');
+    }
+    input.onchange = (event: any) => {
+      const file = event.target.files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            setCapturedPhotoUri(e.target.result as string);
+            stopWebCamera();
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
+  };
+
+  // Gallery Picker (Web & Native)
+  const handlePickFromGallery = async () => {
+    if (Platform.OS === 'web') {
+      pickImageWeb(false);
+    } else {
       try {
         setIsProcessing(true);
-        const photo = await cameraRef.current.takePictureAsync({
+        const res = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [1, 1],
           quality: 0.8,
         });
-        if (photo?.uri) {
-          setCapturedPhotoUri(photo.uri);
+        if (!res.canceled && res.assets && res.assets[0]?.uri) {
+          setCapturedPhotoUri(res.assets[0].uri);
         }
-      } catch (err) {
-        // Fallback to ImagePicker camera
-        launchCameraFallback();
+      } catch (e) {
+        Alert.alert('Gallery Error', 'Could not access photo library.');
       } finally {
         setIsProcessing(false);
       }
-    } else {
-      launchCameraFallback();
-    }
-  };
-
-  const launchCameraFallback = async () => {
-    try {
-      setIsProcessing(true);
-      const res = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-      if (!res.canceled && res.assets && res.assets[0]?.uri) {
-        setCapturedPhotoUri(res.assets[0].uri);
-      }
-    } catch (e) {
-      Alert.alert('Camera Error', 'Could not open device camera. Please check permissions.');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handlePickFromGallery = async () => {
-    try {
-      setIsProcessing(true);
-      const res = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-      if (!res.canceled && res.assets && res.assets[0]?.uri) {
-        setCapturedPhotoUri(res.assets[0].uri);
-      }
-    } catch (e) {
-      Alert.alert('Gallery Error', 'Could not access photo library.');
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -97,6 +194,9 @@ export const FaceCaptureScreen: React.FC<FaceCaptureScreenProps> = ({
 
   const handleRetake = () => {
     setCapturedPhotoUri(null);
+    if (Platform.OS === 'web') {
+      setTimeout(startWebCamera, 100);
+    }
   };
 
   const handleProceed = () => {
@@ -139,7 +239,6 @@ export const FaceCaptureScreen: React.FC<FaceCaptureScreenProps> = ({
 
         {/* Stepper Navigation */}
         <View style={[styles.stepperContainer, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
-          {/* Step 1 (Active) */}
           <View style={styles.stepItem}>
             <View style={[styles.stepCircle, styles.stepCircleActive]}>
               <Text style={styles.stepNumActive}>1</Text>
@@ -151,7 +250,6 @@ export const FaceCaptureScreen: React.FC<FaceCaptureScreenProps> = ({
 
           <View style={[styles.stepLine, { backgroundColor: theme.border }]} />
 
-          {/* Step 2 */}
           <View style={styles.stepItem}>
             <View style={[styles.stepCircle, { backgroundColor: theme.isDark ? theme.surfaceContainerHigh : '#f3f4f6', borderColor: theme.border }]}>
               <Text style={[styles.stepNum, { color: theme.textMuted }]}>2</Text>
@@ -163,7 +261,6 @@ export const FaceCaptureScreen: React.FC<FaceCaptureScreenProps> = ({
 
           <View style={[styles.stepLine, { backgroundColor: theme.border }]} />
 
-          {/* Step 3 */}
           <View style={styles.stepItem}>
             <View style={[styles.stepCircle, { backgroundColor: theme.isDark ? theme.surfaceContainerHigh : '#f3f4f6', borderColor: theme.border }]}>
               <Text style={[styles.stepNum, { color: theme.textMuted }]}>3</Text>
@@ -187,7 +284,7 @@ export const FaceCaptureScreen: React.FC<FaceCaptureScreenProps> = ({
             <View style={[styles.cameraReadyBadge, { backgroundColor: theme.isDark ? '#183a24' : '#e6f4ea', borderColor: theme.isDark ? '#2d5f3f' : '#bbf7d0' }]}>
               <View style={[styles.readyDot, { backgroundColor: theme.badgeOperational }]} />
               <Text style={[styles.cameraReadyText, { color: theme.isDark ? '#4cd964' : '#137333' }]}>
-                {capturedPhotoUri ? 'ACQUIRED' : permission?.granted ? 'LIVE CAMERA' : 'READY'}
+                {capturedPhotoUri ? 'ACQUIRED' : (Platform.OS === 'web' && webStreamActive) || nativePermission?.granted ? 'LIVE CAMERA' : 'READY'}
               </Text>
             </View>
           </View>
@@ -197,7 +294,7 @@ export const FaceCaptureScreen: React.FC<FaceCaptureScreenProps> = ({
             {capturedPhotoUri ? (
               // Captured Photo Preview
               <View style={styles.previewContainer}>
-                <Image source={{ uri: capturedPhotoUri }} style={styles.capturedImage} resizeMode="cover" />
+                <Image source={{ uri: capturedPhotoUri }} style={styles.capturedImage} resizeMode="contain" />
                 <View style={[styles.guidePill, { position: 'absolute', bottom: 12, backgroundColor: 'rgba(0,0,0,0.75)' }]}>
                   <MaterialIcons name="check-circle" size={14} color={theme.badgeOperational} />
                   <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '700', marginLeft: 4 }}>
@@ -205,8 +302,52 @@ export const FaceCaptureScreen: React.FC<FaceCaptureScreenProps> = ({
                   </Text>
                 </View>
               </View>
-            ) : permission?.granted && Platform.OS !== 'web' ? (
-              // Live Native Camera View
+            ) : Platform.OS === 'web' ? (
+              // Web Camera View (HTML5 Video)
+              <View style={styles.cameraOverlay}>
+                {/* @ts-ignore */}
+                <video
+                  ref={(el: any) => {
+                    webVideoRef.current = el;
+                    if (el && webStreamRef.current && el.srcObject !== webStreamRef.current) {
+                      el.srcObject = webStreamRef.current;
+                      el.play().catch(() => {});
+                    }
+                  }}
+                  autoPlay
+                  playsInline
+                  muted
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    transform: facing === 'front' ? 'scaleX(-1)' : 'none',
+                  }}
+                />
+                <View style={[styles.faceGuideOval, { position: 'absolute', borderColor: theme.badgeOperational }]}>
+                  <View style={[styles.guidePill, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
+                    <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '700' }}>FACE GUIDE</Text>
+                  </View>
+                </View>
+
+                {webStreamActive && (
+                  <TouchableOpacity style={styles.flipBtn} onPress={handleToggleFacing}>
+                    <MaterialIcons name="flip-camera-ios" size={20} color="#ffffff" />
+                  </TouchableOpacity>
+                )}
+
+                {!webStreamActive && (
+                  <TouchableOpacity
+                    style={[styles.permissionBtn, { position: 'absolute', backgroundColor: theme.badgeOperational }]}
+                    onPress={startWebCamera}
+                  >
+                    <MaterialIcons name="videocam" size={14} color="#ffffff" />
+                    <Text style={styles.permissionBtnText}>Enable Webcam</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : nativePermission?.granted ? (
+              // Native Expo Camera
               <CameraView
                 ref={cameraRef}
                 style={StyleSheet.absoluteFillObject}
@@ -225,7 +366,7 @@ export const FaceCaptureScreen: React.FC<FaceCaptureScreenProps> = ({
                 </View>
               </CameraView>
             ) : (
-              // Permission Request / Simulation Guide
+              // Native Permission Prompt
               <View style={styles.placeholderCenter}>
                 <View style={[styles.faceGuideOval, { borderColor: theme.isDark ? '#6b7280' : '#4b5563' }]}>
                   <MaterialIcons
@@ -238,20 +379,18 @@ export const FaceCaptureScreen: React.FC<FaceCaptureScreenProps> = ({
                   </View>
                 </View>
 
-                {!permission?.granted && (
-                  <TouchableOpacity
-                    style={[styles.permissionBtn, { backgroundColor: theme.badgeOperational }]}
-                    onPress={requestPermission}
-                  >
-                    <MaterialIcons name="videocam" size={14} color="#ffffff" />
-                    <Text style={styles.permissionBtnText}>Enable Live Camera</Text>
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                  style={[styles.permissionBtn, { backgroundColor: theme.badgeOperational }]}
+                  onPress={requestNativePermission}
+                >
+                  <MaterialIcons name="videocam" size={14} color="#ffffff" />
+                  <Text style={styles.permissionBtnText}>Enable Live Camera</Text>
+                </TouchableOpacity>
               </View>
             )}
           </View>
 
-          {/* Action Buttons */}
+          {/* Action Row */}
           <View style={styles.actionRow}>
             <TouchableOpacity
               style={[
@@ -552,6 +691,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.6)',
     padding: 8,
     borderRadius: 20,
+    zIndex: 10,
   },
   permissionBtn: {
     flexDirection: 'row',
@@ -560,6 +700,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: rounded.full,
+    zIndex: 10,
   },
   permissionBtnText: {
     color: '#ffffff',
