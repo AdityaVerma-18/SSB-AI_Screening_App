@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ImageStyle, ViewStyle, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '../theme/theme';
 
@@ -10,13 +10,13 @@ interface TopAppBarProps {
 
 export const TopAppBar: React.FC<TopAppBarProps> = ({ onPressSecurity, dark = false }) => {
   return (
-    <View style={[styles.header, dark ? styles.headerDark : styles.headerLight]}>
+    <View style={[styles.header as ViewStyle, dark ? styles.headerDark : styles.headerLight]}>
       <View style={styles.leftSection}>
         <Image
           source={{
             uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB62V0fU7VgX8Xcz8VzEmzn79m5m7udDvklvcajtLtgCQTQ9ErYO24i4jo_lDulzw5AIhLEHh0j7cJSLEEPYTo_A2w10QudGPstrhZqr3-L0i6H8fIVqCSdBpuxz5t446iEAVHCUN8NEWJfNBJF0mif69R9V7iA0_T-I0Zp56tWGDWZaCgnxHDXZDCyKIx6cb24lpne_8uKFKR9okGrTzzDp4V3e8jGSZTUGMtlO5M3oXgC7kCXQkYmPzaq5k2kpZp6qQ',
           }}
-          style={styles.emblem}
+          style={styles.emblem as ImageStyle}
           resizeMode="contain"
         />
         <Text
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
     zIndex: 40,
     ...Platform.select({
       web: {
-        position: 'sticky',
+        position: 'sticky' as any,
         top: 0,
       },
     }),

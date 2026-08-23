@@ -1,16 +1,19 @@
-// Design Tokens based on the 5 Stitch Screens (Light Theme + Dark Login & Hero)
+// Sovereign Shield Directive - Theme Tokens (Fully compatible with Light & Dark components)
 
 export const colors = {
-  // Main Canvas
+  // Main Canvas & Backgrounds
   background: '#f5f6f8',
   backgroundLight: '#f8f9fa',
   backgroundDark: '#121317',
   cardDark: '#18191b',
   
-  // Surfaces
+  // Surfaces (Light & Dark)
   surface: '#ffffff',
   surfaceCard: '#ffffff',
   surfaceVariant: '#f1f5f9',
+  surfaceDim: '#121317',
+  surfaceBright: '#38393d',
+  surfaceContainerLowest: '#ffffff',
   surfaceContainerLow: '#f8fafc',
   surfaceContainer: '#ffffff',
   surfaceContainerHigh: '#f8fafc',
@@ -25,11 +28,38 @@ export const colors = {
 
   // Primary & Text
   primary: '#0f172a',
+  onPrimary: '#ffffff',
+  primaryContainer: '#e2e2e2',
+  onPrimaryContainer: '#636565',
+  primaryFixed: '#e2e2e2',
+  primaryFixedDim: '#c6c6c7',
+
+  // Secondary
+  secondary: '#64748b',
+  onSecondary: '#ffffff',
+  secondaryContainer: '#f1f5f9',
+  onSecondaryContainer: '#1e293b',
+  secondaryFixed: '#e5e2e1',
+  secondaryFixedDim: '#c8c6c5',
+  onSecondaryFixed: '#1c1b1b',
+
+  // Tertiary
+  tertiary: '#ffffff',
+  onTertiary: '#303030',
+  tertiaryContainer: '#e4e2e1',
+  onTertiaryContainer: '#656464',
+  tertiaryFixed: '#e4e2e1',
+  tertiaryFixedDim: '#c8c6c5',
+
+  // Text & Content
   textPrimary: '#111827',
   textSecondary: '#4b5563',
   textMuted: '#6b7280',
   textLight: '#9ca3af',
   textWhite: '#ffffff',
+  onSurface: '#0f172a',
+  onSurfaceVariant: '#475569',
+  onBackground: '#0f172a',
   
   // Borders & Outlines
   border: '#e5e7eb',
@@ -51,13 +81,20 @@ export const colors = {
   warningBorder: '#fde68a',
 
   error: '#ef4444',
+  errorCritical: '#ff453a',
   errorText: '#b91c1c',
   errorBg: '#fef2f2',
   errorBorder: '#fecaca',
+  onErrorContainer: '#fee2e2',
 
   info: '#3b82f6',
   infoBg: '#eff6ff',
   infoBorder: '#bfdbfe',
+
+  // Accents & Animations
+  badgeOperational: '#10b981',
+  scanLaser: '#00f2fe',
+  scanGrid: 'rgba(0, 242, 254, 0.15)',
 
   // Button & Interactive
   buttonDark: '#0f172a',

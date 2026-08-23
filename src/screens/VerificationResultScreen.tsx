@@ -7,10 +7,12 @@ import {
   TouchableOpacity,
   Alert,
   Image,
+  ImageStyle,
+  ViewStyle,
   Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors, typography, rounded, spacing } from '../theme/theme';
+import { typography, rounded, spacing } from '../theme/theme';
 import { ScreeningRecord } from '../types';
 
 interface VerificationResultScreenProps {
@@ -91,7 +93,7 @@ export const VerificationResultScreen: React.FC<VerificationResultScreenProps> =
             source={{
               uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCJN9Vsrn5_0Wl2W9WpYgQlusuh7n_i7nCLx4GRjPkhyPgIz2EunXeYfZZgjg3sgBcBMUakGl1EVxzaG3kOqKhZMrGyBkIDSxha4hB0qLie7v6TKikGX91v2E9z6K-KwEEY1aPcsi6siRezFBwFlEXZhJV2wp4io5fFQykL0sh9PtRUrH7cQh3eBBC8nPrHrxJKONM6C0NJpI4RmJ4WN-L7KuV031wvvQqaaNBRLJVgoNM1S5xl2aUHTmDlSsKxB-kIOQ',
             }}
-            style={styles.emblem}
+            style={styles.emblem as ImageStyle}
             resizeMode="contain"
           />
           <Text style={styles.headerTitle} numberOfLines={1}>
@@ -294,8 +296,8 @@ export const VerificationResultScreen: React.FC<VerificationResultScreenProps> =
         </View>
       </ScrollView>
 
-      {/* Sticky Bottom Actions Bar */}
-      <View style={styles.stickyBottomBar}>
+      {/* Bottom Actions Bar */}
+      <View style={styles.stickyBottomBar as ViewStyle}>
         <View style={styles.secureIndicator}>
           <MaterialIcons name="lock" size={16} color="#444748" />
           <Text style={styles.secureIndicatorText}>SECURE SESSION</Text>
@@ -374,7 +376,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: spacing.marginMobile,
     paddingVertical: 20,
-    paddingBottom: 110,
+    paddingBottom: 40,
     maxWidth: spacing.containerMaxWidth,
     alignSelf: 'center',
     width: '100%',
@@ -713,7 +715,7 @@ const styles = StyleSheet.create({
     gap: 10,
     ...Platform.select({
       web: {
-        position: 'fixed',
+        position: 'sticky' as any,
         bottom: 0,
         left: 0,
         right: 0,

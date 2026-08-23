@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, ViewStyle } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors, typography } from '../theme/theme';
+import { typography } from '../theme/theme';
 
 export type TabType = 'dashboard' | 'scan' | 'records' | 'settings';
 
@@ -23,7 +23,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
     {
       id: 'scan' as TabType,
       label: 'Scan',
-      icon: 'document-scanner' as any,
+      icon: 'qr-code-scanner' as const,
     },
     {
       id: 'records' as TabType,
@@ -33,12 +33,12 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
     {
       id: 'settings' as TabType,
       label: 'Settings',
-      icon: 'settings' as any,
+      icon: 'settings' as const,
     },
   ];
 
   return (
-    <View style={styles.navContainer}>
+    <View style={styles.navContainer as ViewStyle}>
       {tabs.map((tab) => {
         const isActive = currentTab === tab.id;
         return (
@@ -50,7 +50,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
           >
             <View style={[styles.iconWrapper, isActive && styles.activeIconWrapper]}>
               <MaterialIcons
-                name={tab.icon}
+                name={tab.icon as any}
                 size={24}
                 color={isActive ? '#111827' : '#6b7280'}
               />
@@ -82,17 +82,11 @@ const styles = StyleSheet.create({
     borderTopColor: '#e5e7eb',
     ...Platform.select({
       web: {
-        position: 'fixed',
+        position: 'sticky' as any,
         bottom: 0,
         left: 0,
         right: 0,
         zIndex: 50,
-      },
-      default: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
       },
     }),
   },

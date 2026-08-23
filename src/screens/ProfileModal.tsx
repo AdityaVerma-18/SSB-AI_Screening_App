@@ -54,7 +54,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             {/* Officer ID Card */}
             <View style={styles.officerCard}>
               <View style={styles.officerAvatar}>
-                <MaterialIcons name="shield-person" size={36} color={colors.primary} />
+                <MaterialIcons name="security" size={36} color={colors.primary} />
               </View>
               <View style={styles.officerInfo}>
                 <Text style={styles.officerName}>{officer.name}</Text>
